@@ -10,6 +10,7 @@ declare module 'vue' {
     ActionListExpandItem: typeof import('./src/components/ActionListExpandItem.vue')['default']
     ActionListView: typeof import('./src/components/ActionListView.vue')['default']
     ErrorCheckpoint: typeof import('./src/components/ErrorCheckpoint.vue')['default']
+    FirebaseImage: typeof import('./src/components/FirebaseImage.vue')['default']
     FooterComponent: typeof import('./src/components/FooterComponent.vue')['default']
     CheckpointHeader: typeof import('./src/components/CheckpointHeader.vue')['default']
     LangChooser: typeof import('./src/components/LangChooser.vue')['default']

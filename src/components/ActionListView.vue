@@ -2,8 +2,8 @@
 import { computed, watch, ref } from 'vue'
 
 import store from '@/store'
-import ActionListExpandItem from './ActionListExpandItem.vue'
 import CheckpointHeader from './CheckpointHeader.vue'
+import { gsToHttps } from '@/helpers/firebase-storage'
 
 const texts = computed(() => store.selectedView?.texts?.[store.chosenLang])
 const selectedViewListItems = ref([] as any[])
@@ -30,6 +30,9 @@ const selectItem = (item: any) => {
         url += `?&body=${store?.checkpointData?.name}:%0D%0A${smsBody}`
       }
       window.open(url, '_blank')
+    } else if (item?.type === 'review') {
+      store.selectedReviewAction = item?.texts?.[store.chosenLang]?.listTitle
+      store.selectedActionId = 'review'
     } else {
       store.selectedActionId = item.id
     }
@@ -51,12 +54,7 @@ function handleLanguageChange(language: string) {
 }
 
 // Compute header data from store
-const headerTitle = computed(() => {
-  if (store.buildingData?.name) {
-    return `Dobrý deň, Vitajte v ${store.buildingData.name}`
-  }
-  return 'Vitajte'
-})
+const headerTitle = computed(() => store.buildingData?.info[store.chosenLang]?.welcome)
 
 const headerImage = computed(() => {
   return store.buildingData?.headerImage || ''
@@ -136,7 +134,7 @@ const getIconForType = (type: string, iconType?: string): string => {
               <!-- Card Image -->
               <v-img
                 v-if="item?.listImage"
-                :src="item?.listImage"
+                :src="gsToHttps(item.listImage)"
                 height="96"
                 cover
                 class="tile-card-image"
@@ -218,7 +216,7 @@ const getIconForType = (type: string, iconType?: string): string => {
             <!-- Card Image -->
             <v-img
               v-if="item?.listImage"
-              :src="item?.listImage"
+              :src="gsToHttps(item.listImage)"
               :height="expandedCardIndex === index ? '221' : '115'"
               cover
               class="expansion-card-image"

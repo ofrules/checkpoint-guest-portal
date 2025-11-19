@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import store from '@/store'
+import { gsToHttps } from '@/helpers/firebase-storage'
 
 interface CheckpointHeaderProps {
   title?: string
@@ -94,10 +95,13 @@ const handleImageClick = () => {
     <div class="checkpoint-header-top">
       <h1 class="checkpoint-header-title">{{ title }}</h1>
 
-      <div class="checkpoint-header-actions">
+      <div
+        v-if="store.buildingData?.info || store.languages.length > 1"
+        class="checkpoint-header-actions"
+      >
         <!-- Language Selector Button -->
         <v-btn
-          v-if="showLanguageSelector"
+          v-if="showLanguageSelector && store.languages.length > 1"
           class="checkpoint-lang-button"
           @click="handleLanguageClick"
         >
@@ -106,7 +110,7 @@ const handleImageClick = () => {
 
         <!-- Info Button -->
         <v-btn
-          v-if="showInfoButton"
+          v-if="showInfoButton && store.buildingData?.info"
           class="checkpoint-info-button"
           prepend-icon="mdi-information-outline"
           @click="handleInfoClick"
@@ -122,7 +126,13 @@ const handleImageClick = () => {
       :class="{ clickable: hasWifiTag }"
       @click="handleImageClick"
     >
-      <v-img v-if="imageUrl" :src="imageUrl" height="173" cover class="checkpoint-header-image">
+      <v-img
+        v-if="imageUrl"
+        :src="gsToHttps(imageUrl)"
+        height="173"
+        cover
+        class="checkpoint-header-image"
+      >
         <!-- Loading Placeholder -->
         <template v-slot:placeholder>
           <div class="checkpoint-image-loading">

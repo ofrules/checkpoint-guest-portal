@@ -32,7 +32,7 @@ changeLang(store.chosenLang)
 </script>
 
 <template>
-  <div class="fab-container">
+  <div v-if="store.languages.length > 1" class="fab-container">
     <p id="active-language" style="display: none; visibility: hidden">{{ store.chosenLang }}</p>
     <div class="fab">
       <div v-if="!state.speedDial" class="fab-content">
