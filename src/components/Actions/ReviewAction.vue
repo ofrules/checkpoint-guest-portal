@@ -34,7 +34,7 @@ const pushData = () => {
       checkpointId: store.userRoomId ?? store.checkpointId,
       extActionPath: store.selectedAction?.path,
       score: state.inputScore,
-      note: state.inputNote
+      note: store.selectedReviewAction + (state.inputNote ? ': ' + state.inputNote : '')
     })
     .then(function (response) {
       store.extUserActionId = response.data
@@ -102,7 +102,7 @@ const backToMenuClick = () => {
     height="75vh"
   >
     <v-carousel-item :value="0" :disabled="!!state.activeItem">
-      <h1 class="pb-5">{{ text?.title }}</h1>
+      <h1 class="pb-5">{{ text?.title }} {{ store.selectedReviewAction }}</h1>
       <p class="pb-1">
         {{ text?.text }}
       </p>
@@ -146,10 +146,8 @@ const backToMenuClick = () => {
     <v-carousel-item :value="1" :disabled="!state.activeItem">
       <div v-if="state.successPage" id="success-page">
         <h1 class="py-10">{{ text?.successTitle }}</h1>
-        <p class="pb-10">
-          {{ text?.successText }}
-        </p>
-        <div class="text-center">
+        <p class="pb-10">{{ text?.successText }} {{ store.selectedReviewAction }}</p>
+        <div v-if="text?.buttonCTA" class="text-center">
           <v-btn id="upsell-button" class="checkpoint-button" @click="ctaClick">
             {{ text?.buttonCTA }}
           </v-btn>
@@ -157,9 +155,7 @@ const backToMenuClick = () => {
       </div>
       <div v-else>
         <h1 class="py-10">{{ text?.cancelTitle }}</h1>
-        <p>
-          {{ text?.cancelText }}
-        </p>
+        <p>{{ text?.cancelText }} {{ store.selectedReviewAction }}</p>
       </div>
       <div v-if="store.hasViewsData" class="text-center">
         <v-btn

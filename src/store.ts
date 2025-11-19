@@ -21,6 +21,7 @@ const store = reactive({
   selectedAction: null as any,
   selectedActionId: null as any,
   extUserActionId: null as any,
+  selectedReviewAction: null as any,
 
   // user
   chosenLang: '',

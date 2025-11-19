@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "ofrules-guests",
+    "site": "kulturpark",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
