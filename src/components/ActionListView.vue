@@ -31,7 +31,6 @@ const selectItem = (item: any) => {
       }
       window.open(url, '_blank')
     } else if (item?.type === 'review') {
-      store.selectedReviewAction = item?.texts?.[store.chosenLang]?.listTitle
       store.selectedActionId = 'review'
     } else {
       store.selectedActionId = item.id
