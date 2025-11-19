@@ -138,7 +138,7 @@ const backToMenuClick = () => {
           @click="pushData"
           :disabled="!isScoreFilled"
         >
-          {{ text?.buttonOk }}
+          <strong>{{ text?.buttonOk }}</strong>
         </v-btn>
       </div>
     </v-carousel-item>

@@ -42,6 +42,7 @@ function closeAction() {
 
 <template>
   <div id="main-view">
+    <!-- Close Button (shown when viewing action details) -->
     <div v-if="showCloseButton" class="panel-container">
       <div class="panel-content">
         <v-btn
@@ -56,11 +57,11 @@ function closeAction() {
         </v-btn>
       </div>
     </div>
-    <!-- <div v-else class="mb-6"></div> -->
 
     <!-- Notification permission prompt -->
     <NotificationPermission v-if="store.buildingID === 'testB1' && !store.selectedActionId" />
 
+    <!-- Action List or Specific Action Views -->
     <ActionListView v-if="!store.selectedActionId" />
     <OccurrenceAction v-else-if="store.selectedAction?.type === 'occurrence'" />
     <OrderAction v-else-if="store.selectedAction?.type === 'order'" />

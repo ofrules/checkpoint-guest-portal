@@ -17,15 +17,27 @@ body {
 .checkpoint-button {
   background-color: var(--color-button) !important;
   color: white !important;
+  font-size: 1rem !important;
   border-radius: 100px !important;
   height: 40px !important;
   padding: 0 20px 0 !important;
   text-transform: none !important;
 }
 
+#submit-button {
+  background-color: var(--color-submit-button) !important;
+  color: var(--color-button) !important;
+  padding-inline: 40px !important;
+}
+
+#submit-button .v-btn__overlay {
+  background-color: var(--color-submit-button) !important;
+}
+
 .checkpoint-secondary-button {
   background-color: var(--color-background) !important;
   color: var(--color-button) !important;
+  font-size: 1rem !important;
   border-radius: 100px !important;
   height: 40px !important;
   padding: 0 20px 0 !important;
@@ -68,7 +80,7 @@ body {
 .v-card {
   border-radius: 12px !important;
   /* box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.25) !important; */
-  background-color: #efe2bb !important;
+  background-color: #fff8ee !important;
 }
 
 .v-card-title {
@@ -83,10 +95,6 @@ body {
 
 .close-button {
   background-color: transparent !important;
-}
-
-.v-list {
-  background-color: #fff8ef !important;
 }
 
 .v-selection-control .v-label {

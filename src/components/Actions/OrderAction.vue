@@ -298,6 +298,48 @@ const backToMenuClick = () => {
   >
     <v-carousel-item :value="0" :disabled="!!state.activeItem">
       <v-list max-height="65vh" style="overflow-x: hidden">
+        <!-- Cover Image -->
+        <v-img
+          v-if="selectedAction?.listImage"
+          :src="selectedAction.listImage"
+          height="202"
+          cover
+          class="order-cover-image mb-4"
+        >
+          <template v-slot:placeholder>
+            <div class="order-image-loading">
+              <div class="order-skeleton-shimmer"></div>
+            </div>
+          </template>
+
+          <!-- Tags Overlay -->
+          <div class="order-image-tags-container">
+            <!-- Left Tags -->
+            <div v-if="texts?.leftTags?.length" class="order-image-tags-left">
+              <v-chip
+                v-for="(tag, index) in texts.leftTags"
+                :key="'left-' + index"
+                size="small"
+                class="order-image-tag"
+              >
+                <strong>{{ tag }}</strong>
+              </v-chip>
+            </div>
+
+            <!-- Right Tags -->
+            <div v-if="texts?.rightTags?.length" class="order-image-tags-right">
+              <v-chip
+                v-for="(tag, index) in texts.rightTags"
+                :key="'right-' + index"
+                size="small"
+                class="order-image-tag"
+              >
+                <strong>{{ tag }}</strong>
+              </v-chip>
+            </div>
+          </div>
+        </v-img>
+
         <h1>{{ texts?.title }}</h1>
         <p v-if="texts?.text" class="pb-1">
           {{ texts?.text }}
@@ -482,7 +524,7 @@ const backToMenuClick = () => {
             "
             @click="pushData"
           >
-            {{ texts?.buttonOk }}
+            <strong>{{ texts?.buttonOk }}</strong>
           </v-btn>
         </div>
       </v-list>
@@ -533,3 +575,82 @@ const backToMenuClick = () => {
   </v-carousel>
   <v-snackbar v-model="state.showError" rounded="pill">{{ state.error }}</v-snackbar>
 </template>
+
+<style scoped>
+/* Order Cover Image */
+.order-cover-image {
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.order-image-loading {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 50%, #e0e0e0 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.order-skeleton-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Order Image Tags Overlay */
+.order-image-tags-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.order-image-tags-left,
+.order-image-tags-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+  align-items: flex-start;
+}
+
+.order-image-tags-right {
+  align-items: flex-end;
+}
+
+.order-image-tag {
+  background-color: var(--color-secondary-container) !important;
+  color: var(--color-on-secondary-container) !important;
+  font-family: 'Roboto', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  height: 24px !important;
+  border-radius: 12px !important;
+}
+</style>

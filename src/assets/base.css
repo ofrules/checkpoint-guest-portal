@@ -1,9 +1,20 @@
 /* semantic color variables for this project */
 :root {
-  --color-background: #fff8ef;
-  --color-heading: #0d3b66;
-  --color-text: #414941;
-  --color-button: #705d0d;
+  /* Figma M3 Design System Colors */
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-primary: #003c69;
+  --color-on-primary: #ffffff;
+  --color-on-surface: #1d1b20;
+  --color-on-surface-variant: #49454f;
+  --color-secondary-container: #d3e4ff;
+  --color-on-secondary-container: #003c69;
+
+  /* Legacy colors (for backwards compatibility) */
+  --color-heading: #003c69;
+  --color-text: #1d1b20;
+  --color-button: #003c69;
+  --color-submit-button: #f1e1b6;
 
   --section-gap: 160px;
 }
