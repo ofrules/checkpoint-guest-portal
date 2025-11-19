@@ -300,7 +300,7 @@ const choiceChoosen = (indexQuestion: number, indexChoice: number) => {
             :loading="state.loadingBtn"
             @click="pushData"
           >
-            {{ text?.buttonOk }}
+            <strong>{{ text?.buttonOk }}</strong>
           </v-btn>
         </div>
       </v-list>

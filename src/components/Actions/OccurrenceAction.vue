@@ -102,7 +102,7 @@ const backToMenuClick = () => {
           :loading="state.loadingBtn"
           @click="pushData"
         >
-          {{ text?.buttonOk }}
+          <strong>{{ text?.buttonOk }}</strong>
         </v-btn>
       </div>
     </v-carousel-item>

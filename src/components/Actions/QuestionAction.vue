@@ -186,7 +186,7 @@ const backToMenuClick = () => {
           @click="pushData"
           :disabled="!isPhoneCorrect"
         >
-          {{ text?.buttonOk }}
+          <strong>{{ text?.buttonOk }}</strong>
         </v-btn>
       </div>
     </v-carousel-item>

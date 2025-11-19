@@ -57,9 +57,22 @@ export interface BaseActionLanguage {
     text: string
     url: string
   }>
+  listTags?: string[] // Filter chips/tags (e.g., ["Tickets", "Popular", "2 km"])
 
   // Optional description
   description?: string
+}
+
+export interface BuildingInfoSection {
+  title: string
+  text?: string
+  texts?: string[]
+}
+
+export interface BuildingInfo {
+  [lang: string]: {
+    sections: BuildingInfoSection[]
+  }
 }
 
 export interface Building {
@@ -67,6 +80,21 @@ export interface Building {
   language: string
   website?: string
   googleUrl?: string
+
+  // Header design fields (Figma "Hlavná stránka V1")
+  headerImage?: string // URL to building/room image for header
+  headerTags?: string[] // Tags shown below header image (e.g., ["Checkout: 14:00", "Wifi"])
+
+  // WiFi info (Figma "Hlavná stránka Wifi")
+  wifi?: {
+    [lang: string]: {
+      name: string
+      password: string
+    }
+  }
+
+  // Building info sections (Figma "Hlavná stránka INFO")
+  info?: BuildingInfo
 }
 
 export interface OccurenceAction extends BaseActionLanguage {
@@ -129,6 +157,10 @@ export interface OrderAction extends BaseActionLanguage {
   // Checkboxes
   checkboxes?: string[]
   checkboxesTexts?: string[]
+
+  // Tags
+  leftTags?: string[]
+  rightTags?: string[]
 }
 
 export interface QuestionAction extends BaseActionLanguage {
