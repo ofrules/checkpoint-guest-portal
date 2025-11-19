@@ -6,6 +6,7 @@ import axios from 'axios'
 import { validatePhone, validateEmail } from '@/helpers'
 import store from '@/store'
 import * as types from '@/types'
+import { gsToHttps } from '@/helpers/firebase-storage'
 
 const route = useRoute()
 
@@ -107,6 +108,22 @@ const isEmailCorrect = computed(
   () =>
     validateEmail(state.inputEmail) && (options?.emailRequired ? !!state.inputEmail.length : true)
 )
+const isContactInfoValid = computed(() => {
+  // If both are required independently, both must be valid
+  if (options?.phoneRequired && options?.emailRequired) {
+    return isPhoneCorrect.value && isEmailCorrect.value
+  }
+
+  // If either is required, at least one must be filled and valid
+  if (options?.phoneOrEmailRequired) {
+    const hasValidPhone = state.inputPhone.length > 0 && validatePhone(state.inputPhone)
+    const hasValidEmail = state.inputEmail.length > 0 && validateEmail(state.inputEmail)
+    return hasValidPhone || hasValidEmail
+  }
+
+  // If neither is required, validate only if filled
+  return isPhoneCorrect.value && isEmailCorrect.value
+})
 
 const formatTimeRange = (index: number) => {
   const time = reservationTimes?.[index]
@@ -189,7 +206,7 @@ const pushData = async () => {
       email: state.inputEmail || undefined
     })
     .then(function (response) {
-      store.extUserActionId = response.data
+      store.extUserActionId = response.data?.data
       state.successPage = true
       state.activeItem = 1
       createTextInputs()
@@ -301,7 +318,7 @@ const backToMenuClick = () => {
         <!-- Cover Image -->
         <v-img
           v-if="selectedAction?.listImage"
-          :src="selectedAction.listImage"
+          :src="gsToHttps(selectedAction.listImage)"
           height="202"
           cover
           class="order-cover-image mb-4"
@@ -517,8 +534,7 @@ const backToMenuClick = () => {
               isFullCapacity ||
               !isOptionSelected ||
               state.loadingBtn ||
-              !isPhoneCorrect ||
-              !isEmailCorrect ||
+              !isContactInfoValid ||
               (options?.noteRequired && !inputs.text) ||
               (options?.noteRequired2 && !inputs.text2)
             "
@@ -534,7 +550,7 @@ const backToMenuClick = () => {
       <div v-if="state.successPage" id="success-page">
         <h1 class="pb-0">{{ texts?.successTitle }}</h1>
         <v-list max-height="62vh">
-          <v-card class="mx-auto mb-5 pt-1 pb-2">
+          <v-card v-if="texts?.reservation" class="mx-auto mb-5 pt-1 pb-2">
             <v-card-title>{{ texts?.reservation }}</v-card-title>
             <v-card-text>
               {{ reservationText }}
