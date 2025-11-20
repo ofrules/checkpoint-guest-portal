@@ -182,7 +182,7 @@ const choiceChoosen = (indexQuestion: number, indexChoice: number) => {
     :show-arrows="false"
     :hide-delimiter-background="true"
     color="#705D0D"
-    height="90vh"
+    class="review-complex-carousel"
   >
     <v-carousel-item :value="0" :disabled="state.activeItem !== 0">
       <h1 class="pb-5">{{ text?.title }}</h1>
@@ -235,7 +235,7 @@ const choiceChoosen = (indexQuestion: number, indexChoice: number) => {
       :value="index + 1"
       :disabled="state.activeItem !== index + 1"
     >
-      <v-list max-height="75vh">
+      <v-list>
         <p class="pb-1 fw-bold">{{ (questionForm as any)?.question }}</p>
         <div
           v-for="(choice, indexChoice) in (questionForm as any)?.choices"
@@ -395,6 +395,23 @@ const choiceChoosen = (indexQuestion: number, indexChoice: number) => {
 </template>
 
 <style lang="scss">
+.review-complex-carousel {
+  padding-bottom: 80px;
+  height: auto !important;
+
+  :deep(.v-carousel__controls) {
+    display: none;
+  }
+
+  :deep(.v-window__container) {
+    height: auto !important;
+  }
+
+  :deep(.v-window-item) {
+    height: auto !important;
+  }
+}
+
 .v-rating__wrapper {
   padding: 5px;
 }

@@ -18,6 +18,7 @@ import store from '@/store'
 
 <style scoped>
 .footer {
+  background-color: var(--color-background);
   text-align: center;
   padding-top: 0px;
   padding-bottom: 5px;

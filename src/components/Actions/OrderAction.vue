@@ -311,10 +311,10 @@ const backToMenuClick = () => {
     :show-arrows="false"
     :hide-delimiter-background="true"
     color="#705D0D"
-    height="75vh"
+    class="order-carousel"
   >
     <v-carousel-item :value="0" :disabled="!!state.activeItem">
-      <v-list max-height="65vh" style="overflow-x: hidden">
+      <v-list style="overflow-x: hidden">
         <!-- Cover Image -->
         <v-img
           v-if="selectedAction?.listImage"
@@ -549,7 +549,7 @@ const backToMenuClick = () => {
     <v-carousel-item v-if="texts?.buttonOk" :value="1" :disabled="!state.activeItem">
       <div v-if="state.successPage" id="success-page">
         <h1 class="pb-0">{{ texts?.successTitle }}</h1>
-        <v-list max-height="62vh">
+        <v-list>
           <v-card v-if="texts?.reservation" class="mx-auto mb-5 pt-1 pb-2">
             <v-card-title>{{ texts?.reservation }}</v-card-title>
             <v-card-text>
@@ -593,6 +593,23 @@ const backToMenuClick = () => {
 </template>
 
 <style scoped>
+.order-carousel {
+  padding-bottom: 80px;
+  height: auto !important;
+}
+
+.order-carousel :deep(.v-carousel__controls) {
+  display: none;
+}
+
+.order-carousel :deep(.v-window__container) {
+  height: auto !important;
+}
+
+.order-carousel :deep(.v-window-item) {
+  height: auto !important;
+}
+
 /* Order Cover Image */
 .order-cover-image {
   border-radius: 10px;
