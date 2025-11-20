@@ -31,7 +31,6 @@ const selectItem = (item: any) => {
       }
       window.open(url, '_blank')
     } else if (item?.type === 'review') {
-      store.selectedReviewAction = item?.texts?.[store.chosenLang]?.listTitle
       store.selectedActionId = 'review'
     } else {
       store.selectedActionId = item.id
@@ -75,10 +74,10 @@ const getIconForType = (type: string, iconType?: string): string => {
 </script>
 
 <template>
-  <div :data-view-id="store.selectedView?.id">
+  <div :data-view-id="store.selectedView?.id" class="action-list-container">
     <!-- Tile View - Figma "Hlavná stránka V1" Design -->
     <div v-if="store.selectedView?.viewType === 'tile'" id="action-menu-view">
-      <v-list max-height="75vh" class="mt-0 py-0">
+      <v-list class="mt-0 py-0">
         <!-- Checkpoint Header (scrollable with content) -->
         <CheckpointHeader
           :title="headerTitle"
@@ -201,7 +200,7 @@ const getIconForType = (type: string, iconType?: string): string => {
     </div>
     <!-- Expansion View - Figma "Čo robiť v okolí" Design -->
     <div v-else-if="store.selectedView?.viewType === 'expansion'" id="action-list-view">
-      <v-list max-height="70vh" class="mt-0 py-0 expansion-view">
+      <v-list class="mt-0 py-0 expansion-view">
         <h1 class="pt-1 expansion-title">{{ texts?.title }}</h1>
 
         <div v-for="(item, index) in selectedViewListItems" :key="index">
@@ -342,3 +341,9 @@ const getIconForType = (type: string, iconType?: string): string => {
     </div> -->
   </div>
 </template>
+
+<style scoped>
+.action-list-container {
+  padding-bottom: 80px;
+}
+</style>
