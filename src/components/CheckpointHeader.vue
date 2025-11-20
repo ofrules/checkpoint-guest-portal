@@ -516,7 +516,6 @@ const handleImageClick = () => {
 @media (max-width: 600px) {
   .checkpoint-header-title {
     font-size: 18px;
-    max-width: 50%;
   }
 
   .checkpoint-lang-button,

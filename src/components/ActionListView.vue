@@ -220,6 +220,7 @@ const getIconForType = (type: string, iconType?: string): string => {
               :height="expandedCardIndex === index ? '221' : '115'"
               cover
               class="expansion-card-image"
+              :position="'center top'"
             >
               <template v-slot:placeholder>
                 <div class="card-image-loading">
