@@ -230,7 +230,7 @@ const handleImageClick = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 16px 0;
+  padding-bottom: 16px;
 }
 
 .checkpoint-header-title {
