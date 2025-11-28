@@ -11,6 +11,14 @@ const showCloseButton = computed(
   () => !store.isOnlySimpleAction && (!isDefaultSelectedView.value || store.selectedActionId)
 )
 
+const notificationTrigger = computed(() => {
+  if (!store.notificationsEnabledForBuilding) return null
+  // Order success notification takes priority if set
+  if (store.showOrderSuccessNotification) return 'order-success'
+  // Otherwise show main notification
+  return 'main'
+})
+
 watch(
   () => store.selectedActionId,
   () => {
@@ -36,12 +44,16 @@ watch(
 
 function closeAction() {
   store.selectedActionId = null
+  store.showOrderSuccessNotification = false
   store.selectedView = store.viewsData?.find((view: any) => view.id === store.extFeedbackId)
 }
 </script>
 
 <template>
   <div id="main-view">
+    <!-- Notification permission prompt -->
+    <NotificationPermission v-if="notificationTrigger" :trigger="notificationTrigger" />
+
     <!-- Close Button (shown when viewing action details) -->
     <div v-if="showCloseButton" class="panel-container">
       <div class="panel-content">
@@ -57,9 +69,6 @@ function closeAction() {
         </v-btn>
       </div>
     </div>
-
-    <!-- Notification permission prompt -->
-    <NotificationPermission v-if="store.buildingID === 'testB1' && !store.selectedActionId" />
 
     <!-- Action List or Specific Action Views -->
     <ActionListView v-if="!store.selectedActionId" />

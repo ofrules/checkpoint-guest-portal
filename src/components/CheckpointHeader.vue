@@ -181,7 +181,7 @@ const handleImageClick = () => {
     <!-- Info Dialog -->
     <v-dialog
       v-model="showInfoDialog"
-      max-width="343"
+      max-width="356"
       scrim="transparent"
       location="top"
       transition="slide-y-transition"
@@ -439,7 +439,7 @@ const handleImageClick = () => {
 
 :deep(.v-overlay__content) {
   align-self: flex-start !important;
-  margin-top: 90px !important;
+  margin-top: 80px !important;
 }
 
 /* Info Dialog Styles */

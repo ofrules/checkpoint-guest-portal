@@ -209,6 +209,7 @@ const pushData = async () => {
       store.extUserActionId = response.data?.data
       state.successPage = true
       state.activeItem = 1
+      store.showOrderSuccessNotification = true
       createTextInputs()
       if (isReservationExclusive || isReservationWithCapacity) {
         reloadActionData()

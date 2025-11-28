@@ -34,6 +34,7 @@ const getData = (query: LocationQuery) => {
       store.viewsData = response.data?.viewsDataList
       store.actionsData = response.data?.actionsDataList
       store.buildingData = response.data?.building
+      store.notificationsEnabledForBuilding = response.data?.building?.configuration?.notifications
 
       // Set buildingID for notifications
       store.buildingID = query.buildingId as string

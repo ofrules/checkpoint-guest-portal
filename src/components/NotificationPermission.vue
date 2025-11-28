@@ -1,5 +1,10 @@
 <template>
-  <v-card v-if="showNotificationPrompt" class="notification-prompt mb-4" elevation="2">
+  <v-card
+    v-if="showNotificationPrompt"
+    class="notification-prompt mb-1"
+    elevation="2"
+    style="position: sticky; top: 0; z-index: 1000"
+  >
     <v-card-text>
       <v-row align="center" no-gutters>
         <v-col cols="auto" class="pr-3">
@@ -15,10 +20,21 @@
     </v-card-text>
     <v-card-actions>
       <v-spacer></v-spacer>
-      <v-btn color="grey" variant="text" @click="dismissPrompt">
+      <v-btn
+        color="grey"
+        variant="text"
+        style="border-radius: 10px !important"
+        @click="dismissPrompt"
+      >
         {{ texts.dismiss }}
       </v-btn>
-      <v-btn color="primary" variant="flat" :loading="isLoading" @click="enableNotifications">
+      <v-btn
+        color="primary"
+        variant="flat"
+        :loading="isLoading"
+        style="border-radius: 10px !important"
+        @click="enableNotifications"
+      >
         {{ texts.enable }}
       </v-btn>
     </v-card-actions>
@@ -38,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import {
   requestNotificationPermission,
   registerToken,
@@ -48,19 +64,29 @@ import {
 } from '@/services/notification-service'
 import { store } from '@/store'
 
+interface Props {
+  trigger?: 'main' | 'order-success' // Trigger type for showing notification
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  trigger: 'main'
+})
+
 // Define notification texts for different languages
 const notificationTexts: Record<string, any> = {
   sk: {
-    title: 'Povoliť notifikácie',
-    message: 'Dostávajte užitočné upozornenia a aktualizácie',
+    title: 'Povoliť upozornenia',
+    message:
+      '💌Nechajte sa počas svojho pobytu rozmaznávať — dostanete tipy, ponuky a malé prekvapenia, ktoré urobia Váš pobyt výnimočným.',
     enable: 'Povoliť',
     dismiss: 'Neskôr',
     success: 'Notifikácie boli úspešne povolené',
     error: 'Nepodarilo sa povoliť notifikácie'
   },
   en: {
-    title: 'Enable Notifications',
-    message: 'Receive useful alerts and updates',
+    title: 'Enable notifications',
+    message:
+      '💌Let yourself be pampered during your stay — you will receive tips, offers, and little surprises that will make your stay exceptional.',
     enable: 'Enable',
     dismiss: 'Later',
     success: 'Notifications enabled successfully',
@@ -68,25 +94,49 @@ const notificationTexts: Record<string, any> = {
   },
   cs: {
     title: 'Povolit upozornění',
-    message: 'Dostávejte užitečná upozornění a aktualizace',
+    message:
+      '💌Nechte se během svého pobytu rozmazlovat — dostanete tipy, nabídky a malá překvapení, která váš pobyt učiní výjimečným.',
     enable: 'Povolit',
     dismiss: 'Později',
     success: 'Oznámení byla úspěšně povolena',
     error: 'Nepodařilo se povolit oznámení'
+  }
+}
+
+const notificationTextsOrderSuccess: Record<string, any> = {
+  sk: {
+    title: 'Povoliť upozornenia',
+    message: '💌Budeme vám môcť pripomenúť vašu rezerváciu alebo informovať o dostupnosti služieb.',
+    enable: 'Povoliť',
+    dismiss: 'Neskôr',
+    success: 'Notifikácie boli úspešne povolené',
+    error: 'Nepodarilo sa povoliť notifikácie'
   },
-  de: {
-    title: 'Benachrichtigungen aktivieren',
-    message: 'Erhalten Sie nützliche Benachrichtigungen und Updates',
-    enable: 'Aktivieren',
-    dismiss: 'Später',
-    success: 'Benachrichtigungen erfolgreich aktiviert',
-    error: 'Benachrichtigungen konnten nicht aktiviert werden'
+  en: {
+    title: 'Enable notifications',
+    message:
+      '💌We will be able to remind you of your reservation or inform you about the availability of services.',
+    enable: 'Enable',
+    dismiss: 'Later',
+    success: 'Notifications enabled successfully',
+    error: 'Failed to enable notifications'
+  },
+  cs: {
+    title: 'Povolit upozornění',
+    message:
+      '💌Budeme vám moci připomenout vaši rezervaci nebo vás informovat o dostupnosti služeb.',
+    enable: 'Povolit',
+    dismiss: 'Později',
+    success: 'Oznámení byla úspěšně povolena',
+    error: 'Nepodařilo se povolit oznámení'
   }
 }
 
 const texts = computed(() => {
   const lang = store.chosenLang || 'sk'
-  return notificationTexts[lang] || notificationTexts.sk
+  const textSource =
+    props.trigger === 'order-success' ? notificationTextsOrderSuccess : notificationTexts
+  return textSource[lang] || textSource.sk
 })
 
 const showNotificationPrompt = ref(false)
@@ -94,9 +144,25 @@ const isLoading = ref(false)
 const showSuccessMessage = ref(false)
 const showErrorMessage = ref(false)
 const errorMessage = ref('')
+const dismissedTriggers = ref<Set<string>>(new Set())
+
+// Get the appropriate localStorage key based on trigger type
+const getDismissedKey = (trigger: string) => {
+  return trigger === 'order-success'
+    ? 'notification-prompt-dismissed-order'
+    : 'notification-prompt-dismissed-main'
+}
+
+// Check if specific trigger is already dismissed
+const checkIfDismissed = (trigger: string) => {
+  return (
+    localStorage.getItem(getDismissedKey(trigger)) === 'true' ||
+    dismissedTriggers.value.has(trigger)
+  )
+}
 
 // Check if we should show the notification prompt
-onMounted(() => {
+const checkAndShowPrompt = () => {
   // Check if notifications are supported
   if (!isNotificationSupported()) {
     return
@@ -105,14 +171,24 @@ onMounted(() => {
   // Check permission status
   const permission = getNotificationPermission()
 
-  // Show prompt only if permission is 'default' (not asked yet) and user hasn't dismissed it
-  const hasUserDismissed = localStorage.getItem('notification-prompt-dismissed') === 'true'
+  // Don't show if current trigger is already dismissed
+  if (checkIfDismissed(props.trigger)) {
+    return
+  }
 
-  if (permission === 'default' && !hasUserDismissed) {
-    // Show prompt after a short delay
-    setTimeout(() => {
+  // Show prompt only if permission is 'default' (not asked yet)
+  if (permission === 'default') {
+    if (props.trigger === 'main') {
+      // Show prompt after 4 seconds for main page
+      setTimeout(() => {
+        if (!checkIfDismissed(props.trigger)) {
+          showNotificationPrompt.value = true
+        }
+      }, 4000)
+    } else if (props.trigger === 'order-success') {
+      // Show immediately for order success
       showNotificationPrompt.value = true
-    }, 2000)
+    }
   } else if (permission === 'granted' && !store.notificationToken) {
     // Permission already granted but no token yet - get token silently
     setupNotifications()
@@ -122,7 +198,31 @@ onMounted(() => {
   if (permission === 'granted') {
     setupForegroundMessageHandler()
   }
+}
+
+onMounted(() => {
+  checkAndShowPrompt()
 })
+
+// Watch for trigger changes - when it changes to order-success, show if not dismissed
+watch(
+  () => props.trigger,
+  (newTrigger, oldTrigger) => {
+    // If trigger changed and the new trigger is not dismissed
+    if (newTrigger !== oldTrigger && !checkIfDismissed(newTrigger)) {
+      if (newTrigger === 'order-success') {
+        // Show order-success notification immediately
+        showNotificationPrompt.value = true
+      } else if (!showNotificationPrompt.value) {
+        // For other triggers, check if we should show
+        checkAndShowPrompt()
+      }
+    } else if (checkIfDismissed(newTrigger)) {
+      // If new trigger is dismissed, hide the notification
+      showNotificationPrompt.value = false
+    }
+  }
+)
 
 async function enableNotifications() {
   isLoading.value = true
@@ -210,8 +310,9 @@ function setupForegroundMessageHandler() {
 
 function dismissPrompt() {
   showNotificationPrompt.value = false
-  // Remember user dismissed the prompt
-  localStorage.setItem('notification-prompt-dismissed', 'true')
+  // Remember user dismissed this specific trigger
+  dismissedTriggers.value.add(props.trigger)
+  localStorage.setItem(getDismissedKey(props.trigger), 'true')
 }
 </script>
 
