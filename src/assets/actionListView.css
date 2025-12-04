@@ -268,6 +268,24 @@
   background-color: #00508a !important;
 }
 
+.expansion-action-secondary-button {
+  background-color: #fff8ee !important;
+  color: var(--color-button) !important;
+  border-radius: 100px !important;
+  font-family: 'Roboto', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 20px !important;
+  letter-spacing: 0.1px;
+  text-transform: none !important;
+  min-width: 80px;
+  height: 40px !important;
+}
+
+.expansion-action-secondary-button > .v-btn__content {
+  font-weight: bold;
+}
+
 .expansion-card-links {
   display: flex;
   flex-direction: column;

@@ -53,6 +53,7 @@ export interface BaseActionLanguage {
   listTexts?: string[]
   listBottomText?: string
   listCTAButton?: string
+  listCTASecondaryButton?: string
   listLinks?: Array<{
     text: string
     url: string

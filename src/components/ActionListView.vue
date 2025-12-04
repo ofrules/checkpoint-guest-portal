@@ -40,6 +40,11 @@ const selectItem = (item: any) => {
   }
 }
 
+const selectItemSecondary = (item: any) => {
+  let url = item.urlSecondary
+  window.open(url, '_blank')
+}
+
 const toggleCardExpansion = (index: number) => {
   if (expandedCardIndex.value === index) {
     expandedCardIndex.value = null
@@ -281,7 +286,17 @@ const getIconForType = (type: string, iconType?: string): string => {
                   </v-chip>
                 </div>
 
-                <!-- Action Button -->
+                <!-- Action Buttons -->
+                <v-btn
+                  v-if="
+                    item?.texts?.[store.chosenLang]?.listCTASecondaryButton && item?.type !== 'text'
+                  "
+                  variant="text"
+                  class="expansion-action-secondary-button mr-1"
+                  @click.stop="selectItemSecondary(item)"
+                >
+                  {{ item?.texts?.[store.chosenLang]?.listCTASecondaryButton }}
+                </v-btn>
                 <v-btn
                   v-if="item?.texts?.[store.chosenLang]?.listCTAButton && item?.type !== 'text'"
                   variant="flat"
