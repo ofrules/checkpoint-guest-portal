@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import * as Sentry from '@sentry/vue'
 
 // Vuetify
 import 'vuetify/styles'
@@ -21,7 +22,15 @@ const vuetify = createVuetify({
   directives
 })
 
-createApp(App).use(vuetify).use(router).mount('#app')
+const app = createApp(App)
+app.use(vuetify).use(router).mount('#app')
+
+Sentry.init({
+  app,
+  dsn: 'https://fb0bf3c1e778ac0afe4d4e88afda6541@o4506955265146880.ingest.us.sentry.io/4509988686921728',
+  sendDefaultPii: true,
+  enableLogs: true
+})
 
 // Register Firebase Cloud Messaging Service Worker
 if ('serviceWorker' in navigator) {
