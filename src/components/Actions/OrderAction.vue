@@ -13,26 +13,9 @@ const route = useRoute()
 const endpointUrl = `${__API_URL__}/createExtUserOrder`
 const getDataUrl = `${__API_URL__}/extFeedbackActionData`
 
+const maxCapacity = 30
+
 const { selectedAction } = store
-
-const state = reactive({
-  activeItem: 0,
-  successPage: false,
-  loadingBtn: false,
-  error: '',
-  showError: false,
-  inputPhone: store.userPhone || '',
-  inputEmail: store.userEmail || '',
-  tab: null as any
-})
-
-const inputs = reactive({
-  number: 1,
-  text: '',
-  text2: '',
-  selectedOptionId: null as number | null,
-  checkboxes: {} as any
-})
 
 const options = selectedAction.options
 const reservation = selectedAction?.reservation
@@ -40,29 +23,6 @@ const reservationTimes = reservation?.times as types.ReservationTime[]
 const isReservationExclusive = !!reservation?.exclusive
 const isReservationWithCapacity = !!reservation?.capacity
 const areMultipleTimeTypes = !!reservation?.multipleTimeTypes
-
-const reservationDate = (() => {
-  if (isReservationExclusive || isReservationWithCapacity) {
-    const date = new Date()
-    if (reservation?.type === 'tomorrow') {
-      date.setDate(date.getDate() + 1)
-    }
-    return date.toLocaleDateString('sk-SK').replace(/\s/g, '')
-  } else {
-    return null
-  }
-})()
-
-const reservationTimesGroupedByType = reservationTimes?.reduce(
-  (acc, time, id) => {
-    if (!acc[time.type]) {
-      acc[time.type] = []
-    }
-    acc[time.type].push({ ...time, id })
-    return acc
-  },
-  {} as Record<string, (types.ReservationTime & { id: number })[]>
-)
 
 const texts = computed(() => selectedAction?.texts?.[store.chosenLang] as types.OrderAction)
 const reservationText = computed(() => {
@@ -74,6 +34,142 @@ const reservationText = computed(() => {
   return text
 })
 
+// Generate available dates based on daysInAdvance
+const generateAvailableDates = () => {
+  if (!areMultipleTimeTypes || !reservation) return []
+
+  const daysInAdvance = reservation.daysInAdvance ?? 1
+  const dates: { label: string; dateStr: string; i: number }[] = []
+
+  for (let i = 0; i <= daysInAdvance; i++) {
+    const date = new Date()
+    date.setDate(date.getDate() + i)
+    const dateStr = date.toLocaleDateString('sk-SK').replace(/\s/g, '')
+    const label = i === 0 ? texts.value?.today : i === 1 ? texts.value?.tomorrow : dateStr
+    dates.push({ label: label!, dateStr, i })
+  }
+
+  return dates
+}
+
+const availableDates = generateAvailableDates()
+
+// For new array-based structure: group times by available dates
+// For old structure: group by type field (backward compatibility)
+const reservationTimesGroupedByType =
+  areMultipleTimeTypes && reservationTimes
+    ? (() => {
+        // Check if using new array-based structure
+        const hasArrayBasedReservations = reservationTimes.some((t) => t.reservations !== undefined)
+
+        if (hasArrayBasedReservations) {
+          // New structure: create groups for each available date
+          // Note: For new structure, we keep the original time slot ID since the backend
+          // expects the index in the reservationTimes array
+          const grouped: Record<
+            string,
+            (types.ReservationTime & { id: number; currentDate?: string })[]
+          > = {}
+
+          availableDates.forEach(({ label, dateStr }) => {
+            grouped[label] = reservationTimes.map((time, id) => ({
+              ...time,
+              id,
+              currentDate: dateStr
+            }))
+          })
+
+          return grouped
+        } else {
+          // Old structure: group by type field (backward compatibility)
+          return reservationTimes.reduce(
+            (acc, time, id) => {
+              const timeType = time.type || 'today'
+              if (!acc[timeType]) {
+                acc[timeType] = []
+              }
+              acc[timeType].push({ ...time, id })
+              return acc
+            },
+            {} as Record<string, (types.ReservationTime & { id: number; currentDate?: string })[]>
+          )
+        }
+      })()
+    : undefined
+
+const state = reactive({
+  activeItem: 0,
+  successPage: false,
+  loadingBtn: false,
+  error: '',
+  showError: false,
+  inputPhone: store.userPhone || '',
+  inputEmail: store.userEmail || '',
+  tab: (areMultipleTimeTypes && reservationTimesGroupedByType
+    ? Object.keys(reservationTimesGroupedByType)[0]
+    : null) as any
+})
+
+const inputs = reactive({
+  number: 1,
+  text: '',
+  text2: '',
+  selectedOptionId: null as number | null,
+  selectedDate: null as string | null, // Track selected date for array-based reservations
+  checkboxes: {} as any
+})
+
+// Helper to check if a specific time slot option is selected (for multiday with array-based reservations)
+const isTimeSlotSelected = (optionId: number, dateStr?: string) => {
+  if (!dateStr) {
+    // Old structure or non-multiday
+    return inputs.selectedOptionId === optionId
+  }
+  // New structure: must match both ID and date
+  return inputs.selectedOptionId === optionId && inputs.selectedDate === dateStr
+}
+
+// Helper to select an option (for multiday with array-based reservations)
+const selectOption = (optionId: number, dateStr?: string) => {
+  inputs.selectedOptionId = optionId
+  if (dateStr) {
+    inputs.selectedDate = dateStr
+  }
+}
+
+// Helper function to get reservation date for a specific time slot or general reservation
+// For new array-based structure, optionally pass the target date directly
+const getReservationDate = (timeSlot?: types.ReservationTime & { currentDate?: string }) => {
+  // For new array-based structure with currentDate context
+  if (timeSlot?.currentDate) {
+    return timeSlot.currentDate
+  }
+
+  // For old structure or when no currentDate context
+  const date = new Date()
+
+  // For multiday reservations, use the time slot's type (backward compatibility)
+  if (areMultipleTimeTypes && timeSlot) {
+    if (timeSlot.type === 'tomorrow') {
+      date.setDate(date.getDate() + 1)
+    }
+  }
+  // For single day reservations, use the reservation's type
+  else if (reservation?.type === 'tomorrow') {
+    date.setDate(date.getDate() + 1)
+  }
+
+  return date.toLocaleDateString('sk-SK').replace(/\s/g, '')
+}
+
+const reservationDate = (() => {
+  if (isReservationExclusive || isReservationWithCapacity) {
+    return getReservationDate()
+  } else {
+    return null
+  }
+})()
+
 const isOptionSelected = computed(() =>
   options?.selection ? inputs.selectedOptionId !== null : true
 )
@@ -84,13 +180,73 @@ const areAllOptionsDisabled = computed(() => {
     return false
   }
 })
+
+// Check if any time slot has full capacity or if general capacity is full
 const isFullCapacity = computed(() => {
+  // For time slots with capacity
+  if (reservationTimes && reservationTimes.some((t) => t.capacity !== undefined)) {
+    const selectedTime =
+      inputs.selectedOptionId !== null ? reservationTimes[inputs.selectedOptionId] : null
+    if (selectedTime && selectedTime.capacity !== undefined) {
+      // For new array-based structure, use the selected date
+      const timeSlotWithDate = inputs.selectedDate
+        ? { ...selectedTime, currentDate: inputs.selectedDate }
+        : selectedTime
+
+      const currentDate = getReservationDate(timeSlotWithDate)
+      let currentFreeCapacity: number | undefined
+
+      // Check if using new array-based structure
+      if (selectedTime.reservations) {
+        const dateReservation = selectedTime.reservations.find((r) => r.date === currentDate)
+        currentFreeCapacity = dateReservation?.freeCapacity ?? selectedTime.capacity
+      } else {
+        // Old structure: backward compatibility
+        currentFreeCapacity =
+          selectedTime.dateReserved === currentDate
+            ? selectedTime.freeCapacity
+            : selectedTime.capacity
+      }
+
+      return currentFreeCapacity === 0
+    }
+    return false
+  }
+  // For general capacity (no time slots)
   if (isReservationWithCapacity && reservationDate === reservation?.dateReserved) {
     return !reservation?.freeCapacity
   }
   return false
 })
+
+// Get free capacity for selected time slot or general capacity
 const freeCapacity = computed(() => {
+  // For time slots with capacity
+  if (reservationTimes && inputs.selectedOptionId !== null) {
+    const selectedTime = reservationTimes[inputs.selectedOptionId]
+    if (selectedTime && selectedTime.capacity !== undefined) {
+      // For new array-based structure, use the selected date
+      const timeSlotWithDate = inputs.selectedDate
+        ? { ...selectedTime, currentDate: inputs.selectedDate }
+        : selectedTime
+
+      const currentDate = getReservationDate(timeSlotWithDate)
+
+      // Check if using new array-based structure
+      if (selectedTime.reservations) {
+        const dateReservation = selectedTime.reservations.find((r) => r.date === currentDate)
+        return dateReservation?.freeCapacity ?? selectedTime.capacity
+      } else {
+        // Old structure: backward compatibility
+        if (selectedTime.dateReserved === currentDate) {
+          return selectedTime.freeCapacity ?? selectedTime.capacity
+        } else {
+          return selectedTime.capacity
+        }
+      }
+    }
+  }
+  // For general capacity (no time slots)
   if (isReservationWithCapacity) {
     if (reservationDate === reservation?.dateReserved) {
       return reservation?.freeCapacity
@@ -98,7 +254,7 @@ const freeCapacity = computed(() => {
       return reservation?.capacity
     }
   }
-  return 30
+  return maxCapacity
 })
 const isPhoneCorrect = computed(
   () =>
@@ -125,9 +281,43 @@ const isContactInfoValid = computed(() => {
   return isPhoneCorrect.value && isEmailCorrect.value
 })
 
-const formatTimeRange = (index: number) => {
-  const time = reservationTimes?.[index]
-  return time?.start + (time?.end ? ` - ${time.end}` : '')
+const formatTimeRange = (
+  indexOrOption: number | (types.ReservationTime & { id: number; currentDate?: string }),
+  addCapacityInfo = true
+) => {
+  // Support both index and option object
+  let time: (types.ReservationTime & { currentDate?: string }) | undefined
+  let index: number
+
+  if (typeof indexOrOption === 'number') {
+    index = indexOrOption
+    time = reservationTimes?.[index]
+  } else {
+    index = indexOrOption.id
+    time = indexOrOption
+  }
+
+  let range = time?.start + (time?.end ? ` - ${time.end}` : '')
+
+  // Add capacity info if available
+  if (addCapacityInfo && time?.capacity !== undefined) {
+    const currentDate = getReservationDate(time)
+    let currentFreeCapacity: number | undefined
+
+    // Check if using new array-based structure
+    if (time.reservations) {
+      const dateReservation = time.reservations.find((r) => r.date === currentDate)
+      currentFreeCapacity = dateReservation?.freeCapacity ?? time.capacity
+    } else {
+      // Old structure: backward compatibility
+      currentFreeCapacity = time.dateReserved === currentDate ? time.freeCapacity : time.capacity
+    }
+
+    const currentBookedCapacity = time.capacity - currentFreeCapacity!
+    range += ` (${currentBookedCapacity}/${time.capacity})`
+  }
+
+  return range
 }
 
 const createPostInputs = () => {
@@ -138,7 +328,7 @@ const createPostInputs = () => {
     //     inputs.selectedOption!
     //   ]
     // )
-    postInputs.push(formatTimeRange(inputs.selectedOptionId!))
+    postInputs.push(formatTimeRange(inputs.selectedOptionId!, false))
   }
   if (options?.inputNumber) {
     postInputs.push(inputs.number.toString())
@@ -160,13 +350,26 @@ const createPostInputs = () => {
 
     postInputs.push(checkedTexts)
   }
+  if (areMultipleTimeTypes && inputs.selectedDate) {
+    postInputs.push(inputs.selectedDate)
+    const selectedDayIdx = availableDates.find((d) => d.dateStr === inputs.selectedDate)?.i
+    if (selectedDayIdx !== undefined) {
+      postInputs.push(
+        selectedDayIdx === 0
+          ? selectedAction?.texts?.[store.buildingData?.language ?? 'sk']?.today
+          : selectedDayIdx === 1
+            ? selectedAction?.texts?.[store.buildingData?.language ?? 'sk']?.tomorrow
+            : ''
+      )
+    }
+  }
   return postInputs
 }
 
 const createTextInputs = () => {
   const textInputs = []
   if (options?.selection) {
-    textInputs.push(formatTimeRange(inputs.selectedOptionId!))
+    textInputs.push(formatTimeRange(inputs.selectedOptionId!, false))
   }
   if (options?.inputNumber) {
     textInputs.push(inputs.number.toString())
@@ -187,19 +390,32 @@ const createTextInputs = () => {
 
     textInputs.push(checkedTexts)
   }
+  if (areMultipleTimeTypes && inputs.selectedDate) {
+    textInputs.push(inputs.selectedDate)
+    textInputs.push(availableDates.find((d) => d.dateStr === inputs.selectedDate)?.label)
+  }
   return textInputs
 }
 
 const pushData = async () => {
   state.loadingBtn = true
   const note = inputs.text2.length ? `${inputs.text}, ${inputs.text2}` : inputs.text
+
+  // Determine if selectedNumber is needed
+  const needsSelectedNumber =
+    isReservationWithCapacity ||
+    (reservationTimes &&
+      inputs.selectedOptionId !== null &&
+      reservationTimes[inputs.selectedOptionId]?.capacity !== undefined)
+
   axios
     .post(endpointUrl, {
       buildingId: store.buildingId,
       checkpointId: store.userRoomId ?? store.checkpointId,
       extActionPath: selectedAction?.path,
       selectedOption: inputs.selectedOptionId,
-      selectedNumber: isReservationWithCapacity ? inputs.number : undefined,
+      selectedDate: inputs.selectedDate || undefined, // Send selected date for array-based reservations
+      selectedNumber: needsSelectedNumber ? inputs.number : undefined,
       inputs: createPostInputs(),
       note: note,
       phone: state.inputPhone || undefined,
@@ -247,12 +463,84 @@ const reloadActionData = async () => {
     })
 }
 
-const isOptionReserved = (index: number) =>
-  isReservationExclusive && reservationTimes?.[index]?.dateReserved === reservationDate
+const isOptionReserved = (
+  indexOrOption: number | (types.ReservationTime & { id: number; currentDate?: string })
+) => {
+  // Support both index and option object
+  let timeSlot: (types.ReservationTime & { currentDate?: string }) | undefined
 
-const isOptionAfterStartTime = (index: number) => {
-  const optionStartTime = reservationTimes?.[index]?.start
-  if (optionStartTime && reservation?.type === 'today') {
+  if (typeof indexOrOption === 'number') {
+    timeSlot = reservationTimes?.[indexOrOption]
+  } else {
+    timeSlot = indexOrOption
+  }
+
+  if (!timeSlot) return false
+
+  const currentDate = getReservationDate(timeSlot)
+
+  // For exclusive reservations without capacity
+  if (isReservationExclusive && timeSlot.capacity === undefined) {
+    // Check if using new array-based structure
+    if (timeSlot.reservations) {
+      return timeSlot.reservations.some((r) => r.date === currentDate)
+    } else {
+      // Old structure: backward compatibility
+      return timeSlot.dateReserved === currentDate
+    }
+  }
+
+  // For time slots with capacity
+  if (timeSlot.capacity !== undefined) {
+    let currentFreeCapacity: number | undefined
+
+    // Check if using new array-based structure
+    if (timeSlot.reservations) {
+      const dateReservation = timeSlot.reservations.find((r) => r.date === currentDate)
+      currentFreeCapacity = dateReservation?.freeCapacity ?? timeSlot.capacity
+    } else {
+      // Old structure: backward compatibility
+      currentFreeCapacity =
+        timeSlot.dateReserved === currentDate ? timeSlot.freeCapacity : timeSlot.capacity
+    }
+
+    return currentFreeCapacity === 0
+  }
+
+  return false
+}
+
+const isOptionAfterStartTime = (
+  indexOrOption: number | (types.ReservationTime & { id: number; currentDate?: string })
+) => {
+  // Support both index and option object
+  let timeSlot: (types.ReservationTime & { currentDate?: string }) | undefined
+  let index: number
+
+  if (typeof indexOrOption === 'number') {
+    index = indexOrOption
+    timeSlot = reservationTimes?.[index]
+  } else {
+    index = indexOrOption.id
+    timeSlot = indexOrOption
+  }
+
+  if (!timeSlot) return false
+
+  const optionStartTime = timeSlot.start
+
+  // Determine if this is "today" - check if currentDate matches today
+  let isToday: boolean
+  if (timeSlot.currentDate) {
+    // New structure: compare currentDate with actual today
+    const today = new Date().toLocaleDateString('sk-SK').replace(/\s/g, '')
+    isToday = timeSlot.currentDate === today
+  } else {
+    // Old structure: use type field (backward compatibility)
+    isToday = areMultipleTimeTypes ? timeSlot.type === 'today' : reservation?.type === 'today'
+  }
+
+  if (optionStartTime && isToday) {
     const hoursInAdvance = reservation?.hoursInAdvance ?? 0
     const currentDatePlusAdvance = new Date()
     currentDatePlusAdvance.setHours(currentDatePlusAdvance.getHours() + hoursInAdvance)
@@ -268,13 +556,17 @@ const isOptionAfterStartTime = (index: number) => {
   }
 }
 
-const isOptionDisabled = (index: number) => {
+const isOptionDisabled = (
+  indexOrOption: number | (types.ReservationTime & { id: number; currentDate?: string })
+) => {
   if (reservation) {
-    return isOptionReserved(index) || isOptionAfterStartTime(index)
+    return isOptionReserved(indexOrOption) || isOptionAfterStartTime(indexOrOption)
   } else {
     return false
   }
 }
+
+const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
 
 watch(
   () => inputs.number,
@@ -282,6 +574,13 @@ watch(
     if (inputs.number && inputs.number < 1) {
       inputs.number = 1
     }
+  }
+)
+
+watch(
+  () => inputs.selectedOptionId,
+  () => {
+    inputs.number = 1
   }
 )
 
@@ -383,24 +682,39 @@ const backToMenuClick = () => {
               :key="type"
               :value="type"
               readonly
-              >{{ type }}</v-tab
+              >{{ capitalize(type) }}</v-tab
             >
           </v-tabs>
 
-          <v-row v-if="options?.selection">
-            <v-col v-for="(typeGroup, type) in reservationTimesGroupedByType" :key="type">
-              <v-radio-group v-model="inputs.selectedOptionId" color="#705d0d">
+          <v-radio-group
+            v-if="options?.selection"
+            :model-value="
+              inputs.selectedOptionId !== null && inputs.selectedDate !== null
+                ? `${inputs.selectedOptionId}-${inputs.selectedDate}`
+                : null
+            "
+            color="#705d0d"
+          >
+            <v-row>
+              <v-col v-for="(typeGroup, type) in reservationTimesGroupedByType" :key="type">
                 <v-radio
                   v-for="option in typeGroup"
-                  :label="formatTimeRange(option.id)"
-                  :value="option.id"
-                  :key="option.id"
-                  :disabled="isOptionDisabled(option.id)"
-                  @click="() => (state.tab = type)"
+                  :label="formatTimeRange(option)"
+                  :value="`${option.id}-${option.currentDate}`"
+                  :key="`${type}-${option.id}`"
+                  :disabled="isOptionDisabled(option)"
+                  @click="
+                    () => {
+                      if (!isOptionDisabled(option)) {
+                        selectOption(option.id, option.currentDate)
+                        state.tab = type
+                      }
+                    }
+                  "
                 ></v-radio>
-              </v-radio-group>
-            </v-col>
-          </v-row>
+              </v-col>
+            </v-row>
+          </v-radio-group>
         </div>
 
         <div v-else>
@@ -430,6 +744,12 @@ const backToMenuClick = () => {
           <p>
             {{ texts?.numberInputText }}
           </p>
+          <p
+            v-if="!isReservationExclusive && isOptionSelected && freeCapacity !== maxCapacity"
+            class="text-caption mb-2"
+          >
+            {{ texts?.availableCapacity }}: {{ freeCapacity }}
+          </p>
           <v-number-input
             v-if="options?.inputNumber"
             v-model="inputs.number"
@@ -441,6 +761,7 @@ const backToMenuClick = () => {
             :min="1"
             :max="freeCapacity"
             @blur="() => !inputs.number && (inputs.number = 1)"
+            :readonly="!isOptionSelected"
           ></v-number-input>
         </div>
 

@@ -118,6 +118,9 @@ export interface OrderAction extends BaseActionLanguage {
   reservation?: string
   reservationText?: string
   reservationFull?: string
+  availableCapacity?: string
+  today?: string
+  tomorrow?: string
 
   // Phone input
   phoneText?: string
@@ -239,9 +242,17 @@ export interface LinkAction extends BaseActionLanguage {
   // - listLinks
 }
 
+export interface DateReservation {
+  date: string
+  freeCapacity?: number
+}
+
 export interface ReservationTime {
   start: string
   end: string
-  dateReserved: string
-  type: string
+  dateReserved?: string // Deprecated: kept for backward compatibility
+  type?: string // Deprecated: kept for backward compatibility
+  capacity?: number
+  freeCapacity?: number // Deprecated: kept for backward compatibility
+  reservations?: DateReservation[] // New: array of date-based reservations
 }

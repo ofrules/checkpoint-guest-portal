@@ -53,12 +53,10 @@ const toggleCardExpansion = (index: number) => {
   }
 }
 
-function handleLanguageChange(language: string) {
-  console.log('Language changed to:', language)
-}
+function handleLanguageChange() {}
 
 // Compute header data from store
-const headerTitle = computed(() => store.buildingData?.info[store.chosenLang]?.welcome)
+const headerTitle = computed(() => store.buildingData?.info?.[store.chosenLang]?.welcome)
 
 const headerImage = computed(() => {
   return store.buildingData?.headerImage || ''
@@ -244,14 +242,12 @@ const getIconForType = (type: string, iconType?: string): string => {
                 :class="{ expanded: expandedCardIndex === index }"
               >
                 <template v-if="item?.texts?.[store.chosenLang]?.listTexts?.length">
-                  <span
+                  <div
                     v-for="(text, textIndex) in item?.texts?.[store.chosenLang]?.listTexts"
                     :key="textIndex"
                   >
-                    {{ text }}
-                    <span v-if="textIndex < item?.texts?.[store.chosenLang]?.listTexts.length - 1">
-                    </span>
-                  </span>
+                    {{ text || '\u00A0' }}
+                  </div>
                 </template>
                 <template v-else>
                   {{ item?.texts?.[store.chosenLang]?.listText }}

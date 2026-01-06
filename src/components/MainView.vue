@@ -92,7 +92,6 @@ function closeAction() {
   position: relative;
   top: 5px;
   right: 0px;
-  z-index: 1000;
 }
 .panel-container .panel-content {
   display: flex;
