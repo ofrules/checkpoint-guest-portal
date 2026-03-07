@@ -3,6 +3,7 @@ import { computed, watch, ref } from 'vue'
 
 import store from '@/store'
 import ActionListExpandItem from './ActionListExpandItem.vue'
+import { pushAnalyticsEvent } from '@/helpers/analytics'
 
 const texts = computed(() => store.selectedView?.texts?.[store.chosenLang])
 const selectedViewListItems = ref([] as any[])
@@ -15,6 +16,14 @@ watch(
         store.actionsData.find((action: any) => action.id === id) ??
         store.viewsData.find((action: any) => action.id === id)
     )
+
+    if (store.selectedView) {
+      pushAnalyticsEvent('content_viewed', {
+        building_id: store.buildingId,
+        view_id: store.selectedView.id,
+        view_title: store.selectedView.texts?.[store.chosenLang]?.title || store.selectedView.id
+      })
+    }
   },
   { immediate: true }
 )

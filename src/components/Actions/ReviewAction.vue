@@ -4,6 +4,7 @@ import axios from 'axios'
 
 import store from '@/store'
 import * as types from '@/types'
+import { pushAnalyticsEvent } from '@/helpers/analytics'
 
 const isScoreFilled = computed(() => state.inputScore > 0)
 
@@ -38,6 +39,12 @@ const pushData = () => {
     })
     .then(function (response) {
       store.extUserActionId = response.data
+      pushAnalyticsEvent('action_completed', {
+        building_id: store.buildingId,
+        action_type: 'review',
+        action_id: store.selectedAction?.id,
+        score: state.inputScore
+      })
       if (state.inputScore < 4) {
         state.successPage = false
       } else {
