@@ -5,7 +5,7 @@ import axios from 'axios'
 import { validatePhone } from '@/helpers'
 import store from '@/store'
 import * as types from '@/types'
-import { trackActionCompleted } from '@/helpers/analytics'
+import { trackAnalyticsActionCompleted } from '@/helpers/analytics'
 
 const state = reactive({
   activeItem: 0,
@@ -39,7 +39,7 @@ const pushData = () => {
     })
     .then(function (response) {
       store.extUserActionId = response.data
-      trackActionCompleted('question', store.selectedAction?.id)
+      trackAnalyticsActionCompleted('question', store.selectedAction?.id)
       state.successPage = true
       state.activeItem++
       if (state.inputPhone) {

@@ -4,7 +4,7 @@ import { useRoute, type LocationQuery } from 'vue-router'
 import axios from 'axios'
 import store from '@/store'
 import MainView from './MainView.vue'
-import { pushAnalyticsEvent } from '@/helpers/analytics'
+import { trackAnalyticsQrScanned } from '@/helpers/analytics'
 
 const oneWeekMs = 1000 * 60 * 60 * 24 * 7
 
@@ -36,10 +36,7 @@ const getData = (query: LocationQuery) => {
       store.actionsData = response.data?.actionsDataList
       store.buildingData = response.data?.building
 
-      pushAnalyticsEvent('qr_scanned', {
-        building_id: query.buildingId,
-        checkpoint_id: query.checkpointId
-      })
+      trackAnalyticsQrScanned(query.buildingId, query.checkpointId, query.extFeedbackId)
 
       // Set buildingID for notifications
       store.buildingID = query.buildingId as string

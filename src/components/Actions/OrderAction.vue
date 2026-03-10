@@ -6,7 +6,7 @@ import axios from 'axios'
 import { validatePhone, validateEmail } from '@/helpers'
 import store from '@/store'
 import * as types from '@/types'
-import { trackActionCompleted } from '@/helpers/analytics'
+import { trackAnalyticsActionCompleted } from '@/helpers/analytics'
 
 const route = useRoute()
 
@@ -191,7 +191,7 @@ const pushData = async () => {
     })
     .then(function (response) {
       store.extUserActionId = response.data
-      trackActionCompleted('order', selectedAction?.id)
+      trackAnalyticsActionCompleted('order', selectedAction?.id)
       state.successPage = true
       state.activeItem = 1
       createTextInputs()

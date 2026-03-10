@@ -4,7 +4,7 @@ import axios from 'axios'
 
 import store from '@/store'
 import * as types from '@/types'
-import { trackActionCompleted } from '@/helpers/analytics'
+import { trackAnalyticsActionCompleted } from '@/helpers/analytics'
 
 const options = store.selectedAction?.options
 const showContactPage = !!options?.contactPage
@@ -62,7 +62,7 @@ const pushData = () => {
     })
     .then(function (response) {
       store.extUserActionId = response.data
-      trackActionCompleted('review', store.selectedAction?.id, { score: state.inputScore })
+      trackAnalyticsActionCompleted('review', store.selectedAction?.id, { score: state.inputScore })
       if (state.inputScore < 4) {
         state.successPage = false
       } else {
