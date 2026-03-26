@@ -1,0 +1,53 @@
+It looks like we don't have the buildingID set when we try to setup teh funnel. The breakdown in set to BuildingID but it does nothing. When I add it to filter I see no events. This is before we merged our changes. Will these fixes solve this?
+
+---
+
+They are set up
+
+---
+
+Help me setup this mcp: https://github.com/googleanalytics/google-analytics-mcp
+
+---
+
+PROPERTY ID: 477794843
+
+---
+
+looks like it is working. Can you check the analytics configuration? Should we update something? Do a deep research on all the features and options that we should have turned on/off
+
+---
+
+This app is blocked
+
+This app tried to access sensitive info in your Google Account. To keep your account safe, Google blocked this access.
+
+---
+
+juraj@juraj-GP65:~/development/checkpoint/checkpoint-guest-portal$gcloud auth application-default --scopes="https://www.googleapis.com/auth/analytics.readonly,https://www.googleapis.com/auth/cloud-platform"
+ERROR: (gcloud.auth.application-default) unrecognized arguments: --scopes=https://www.googleapis.com/auth/analytics.readonly,https://www.googleapis.com/auth/cloud-platform 
+
+To search the help text of gcloud commands, run:
+  gcloud help -- SEARCH_TERMS
+
+---
+
+done
+
+---
+
+connected
+
+---
+
+juraj@juraj-GP65:~/development/checkpoint/checkpoint-guest-portal$gcloud auth application-default --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/analytics.readonly"
+ERROR: (gcloud.auth.application-default) unrecognized arguments: --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/analytics.readonly 
+
+To search the help text of gcloud commands, run:
+  gcloud help -- SEARCH_TERMS
+
+---
+
+I got "This app is blocked
+
+This app tried to access sensitive info in your Google Account. To keep your account safe, Google blocked this access." In the browser
