@@ -184,6 +184,19 @@ const getIconForType = (type: string, iconType?: string): string => {
                 >
                   {{ item?.texts?.[store.chosenLang]?.listCTAButton }}
                 </v-btn>
+
+                <!-- Optional Info Button -->
+                <v-btn
+                  v-if="item?.texts?.[store.chosenLang]?.listInfoButton"
+                  class="tile-cta-button mt-2"
+                  size="small"
+                  variant="text"
+                  :ripple="false"
+                  @click.stop="store.selectedActionId = 'info-' + item?.id"
+                  style="background-color: rgb(76, 175, 80) !important"
+                >
+                  {{ item?.texts?.[store.chosenLang]?.listInfoButton }}
+                </v-btn>
               </v-card-text>
             </v-card>
 

@@ -92,11 +92,14 @@
   font-family: 'Roboto', sans-serif !important;
   font-size: 16px !important;
   font-weight: 500 !important;
-  line-height: 24px !important;
   color: var(--color-on-surface) !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+  -webkit-hyphens: none;
 }
 
 .tile-card-text {
@@ -111,6 +114,10 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   flex: 1;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+  -webkit-hyphens: none;
 }
 
 .tile-card-tags {
@@ -347,8 +354,14 @@
    RESPONSIVE ADJUSTMENTS
    ===================== */
 
-@media (max-width: 600px) {
-  .simple-tile-card {
+@media (max-width: 420px) {
+  .tile-card-title {
+    font-size: 14px !important;
+  }
+  .tile-card-text {
+    font-size: 13px !important;
+  }
+  /* .simple-tile-card {
     height: 54px !important;
   }
 
@@ -373,5 +386,5 @@
 
   .expansion-action-button {
     width: 100%;
-  }
+  } */
 }
