@@ -3,6 +3,7 @@ import { computed, watch, ref } from 'vue'
 
 import store from '@/store'
 import ActionListExpandItem from './ActionListExpandItem.vue'
+import { trackAnalyticsContentViewed } from '@/helpers/analytics'
 
 const texts = computed(() => store.selectedView?.texts?.[store.chosenLang])
 const selectedViewListItems = ref([] as any[])
@@ -15,6 +16,10 @@ watch(
         store.actionsData.find((action: any) => action.id === id) ??
         store.viewsData.find((action: any) => action.id === id)
     )
+
+    if (store.selectedView) {
+      trackAnalyticsContentViewed()
+    }
   },
   { immediate: true }
 )

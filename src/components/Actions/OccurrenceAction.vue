@@ -4,6 +4,7 @@ import axios from 'axios'
 
 import store from '@/store'
 import * as types from '@/types'
+import { trackAnalyticsActionCompleted } from '@/helpers/analytics'
 
 const state = reactive({
   activeItem: 0,
@@ -29,6 +30,7 @@ const pushData = () => {
     })
     .then(function (response) {
       store.extUserActionId = response.data
+      trackAnalyticsActionCompleted('occurrence', store.selectedAction?.id)
       state.successPage = true
       state.activeItem = 1
     })
