@@ -3,6 +3,7 @@ import { computed, watch, ref } from 'vue'
 
 import store from '@/store'
 import CheckpointHeader from './CheckpointHeader.vue'
+import { trackAnalyticsContentViewed } from '@/helpers/analytics'
 import { gsToHttps } from '@/helpers/firebase-storage'
 
 const texts = computed(() => store.selectedView?.texts?.[store.chosenLang])
@@ -17,6 +18,10 @@ watch(
         store.actionsData.find((action: any) => action.id === id) ??
         store.viewsData.find((action: any) => action.id === id)
     )
+
+    if (store.selectedView) {
+      trackAnalyticsContentViewed()
+    }
   },
   { immediate: true }
 )

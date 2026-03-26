@@ -6,6 +6,7 @@ import axios from 'axios'
 import { validatePhone, validateEmail } from '@/helpers'
 import store from '@/store'
 import * as types from '@/types'
+import { trackAnalyticsActionCompleted } from '@/helpers/analytics'
 import { gsToHttps } from '@/helpers/firebase-storage'
 
 const route = useRoute()
@@ -423,6 +424,7 @@ const pushData = async () => {
     })
     .then(function (response) {
       store.extUserActionId = response.data?.data
+      trackAnalyticsActionCompleted('order', selectedAction?.id)
       state.successPage = true
       state.activeItem = 1
       store.showOrderSuccessNotification = true
