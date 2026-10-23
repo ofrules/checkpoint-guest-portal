@@ -35,6 +35,14 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr_number) || github.event.pull_request.head.sha }}
 
+      - uses: ./.github/actions/preview-comment
+        continue-on-error: true
+        with:
+          kind: staging
+          state: deploying
+          pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -75,21 +83,23 @@ jobs:
       # PR-comment logic reads github.context.issue, which is empty on
       # workflow_dispatch anyway) so every preview comment links back to
       # the deploy-status dashboard.
-      - if: github.event_name == 'pull_request'
-        run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --body "🔥 Staging preview deployed: ${{ steps.deploy.outputs.details_url }}
+      - uses: ./.github/actions/preview-comment
+        continue-on-error: true
+        with:
+          kind: staging
+          state: deployed
+          pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          url: ${{ steps.deploy.outputs.details_url }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-          📊 [Deploy status dashboard](https://ofrules-checkpoint-dashboard.firebaseapp.com/)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - if: github.event_name == 'workflow_dispatch'
-        run: |
-          gh pr comment "${{ inputs.pr_number }}" --body "🔄 Staging preview manually refreshed: ${{ steps.deploy.outputs.details_url }}
-
-          📊 [Deploy status dashboard](https://ofrules-checkpoint-dashboard.firebaseapp.com/)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/preview-comment
+        if: failure()
+        continue-on-error: true
+        with:
+          kind: staging
+          state: failed
+          pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   build_and_preview_production:
     if: >
@@ -101,6 +111,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr_number) || github.event.pull_request.head.sha }}
+
+      - uses: ./.github/actions/preview-comment
+        continue-on-error: true
+        with:
+          kind: production
+          state: deploying
+          pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -144,21 +162,23 @@ jobs:
 
       # See the staging job above for why we post our own comment on both
       # event paths instead of relying on the action's built-in one.
-      - if: github.event_name == 'pull_request'
-        run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --body "🔥 Production-data preview deployed: ${{ steps.deploy.outputs.details_url }}
+      - uses: ./.github/actions/preview-comment
+        continue-on-error: true
+        with:
+          kind: production
+          state: deployed
+          pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          url: ${{ steps.deploy.outputs.details_url }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-          📊 [Deploy status dashboard](https://ofrules-checkpoint-dashboard.firebaseapp.com/)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - if: github.event_name == 'workflow_dispatch'
-        run: |
-          gh pr comment "${{ inputs.pr_number }}" --body "🔄 Production-data preview manually refreshed: ${{ steps.deploy.outputs.details_url }}
-
-          📊 [Deploy status dashboard](https://ofrules-checkpoint-dashboard.firebaseapp.com/)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/preview-comment
+        if: failure()
+        continue-on-error: true
+        with:
+          kind: production
+          state: failed
+          pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   notify_dashboard:
     needs: [build_and_preview_staging, build_and_preview_production]

@@ -1,0 +1,107 @@
+name: Preview comment
+description: >-
+  Create or update ONE sticky PR comment per preview kind (staging /
+  production-data) instead of posting a new comment on every push. Shows the
+  state of the latest deploy (in progress / deployed / failed), the commit and
+  time, a running deploy counter, and keeps the previous preview URL visible
+  while a new one is deploying. Run it from a checkout of the PR head.
+
+inputs:
+  kind:
+    description: staging or production
+    required: true
+  state:
+    description: deploying, deployed or failed
+    required: true
+  pr_number:
+    description: Pull request number
+    required: true
+  url:
+    description: Preview URL (required for state=deployed)
+    default: ""
+  token:
+    description: GitHub token with pull-requests:write
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create or update preview comment
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        KIND: ${{ inputs.kind }}
+        STATE: ${{ inputs.state }}
+        PR: ${{ inputs.pr_number }}
+        NEW_URL: ${{ inputs.url }}
+        REPO: ${{ github.repository }}
+        RUN_ID: ${{ github.run_id }}
+        EVENT: ${{ github.event_name }}
+      run: |
+        set -euo pipefail
+
+        case "$KIND" in
+          staging)    label="Staging preview" ;;
+          production) label="Production-data preview" ;;
+          *)          label="${KIND} preview" ;;
+        esac
+        marker="<!-- preview-comment:${KIND} -->"
+
+        sha=$(git rev-parse HEAD)
+        commit="[\`${sha:0:7}\`](https://github.com/${REPO}/commit/${sha})"
+        run="[run](https://github.com/${REPO}/actions/runs/${RUN_ID})"
+        now=$(date -u '+%Y-%m-%d %H:%M UTC')
+        trigger=""
+        [ "$EVENT" = "workflow_dispatch" ] && trigger=" · manually refreshed"
+        dashboard="📊 [Deploy status dashboard](https://ofrules-checkpoint-dashboard.firebaseapp.com/)"
+
+        # Existing comment for this kind (if any) carries the previous URL and
+        # deploy count in a hidden data marker.
+        comment_id=$(gh api --paginate "repos/${REPO}/issues/${PR}/comments" \
+          --jq ".[] | select(.body | contains(\"${marker}\")) | .id" | head -n1 || true)
+        old_count=0
+        old_url=""
+        if [ -n "$comment_id" ]; then
+          old_body=$(gh api "repos/${REPO}/issues/comments/${comment_id}" --jq .body)
+          old_count=$(printf '%s' "$old_body" | sed -n 's/.*preview-data count=\([0-9]*\) .*/\1/p' | head -n1)
+          old_url=$(printf '%s' "$old_body" | sed -n 's/.*preview-data count=[0-9]* url=\([^ ]*\) -->.*/\1/p' | head -n1)
+          old_count=${old_count:-0}
+        fi
+
+        previous=""
+        if [ -n "$old_url" ]; then
+          previous=$'\n'"Previous preview (deploy #${old_count}) is still available: ${old_url}"
+        fi
+
+        case "$STATE" in
+          deploying)
+            count=$old_count; url=$old_url
+            head="⏳ **${label}: deploying** (deploy #$((old_count + 1)))"
+            details="Commit ${commit} · started ${now} · ${run}${trigger}${previous}"
+            ;;
+          deployed)
+            count=$((old_count + 1)); url=$NEW_URL
+            head="🔥 **${label} deployed** (deploy #${count}): ${NEW_URL}"
+            details="Commit ${commit} · deployed ${now} · ${run}${trigger}"
+            ;;
+          failed)
+            count=$old_count; url=$old_url
+            head="❌ **${label}: deploy failed** (attempt #$((old_count + 1)))"
+            details="Commit ${commit} · failed ${now} · ${run}${trigger}${previous}"
+            ;;
+          *) echo "unknown state: $STATE" >&2; exit 1 ;;
+        esac
+
+        body="${marker}
+        <!-- preview-data count=${count} url=${url} -->
+        ${head}
+
+        ${details}
+
+        ${dashboard}"
+
+        if [ -n "$comment_id" ]; then
+          gh api -X PATCH "repos/${REPO}/issues/comments/${comment_id}" -f body="$body" > /dev/null
+        else
+          gh api -X POST "repos/${REPO}/issues/${PR}/comments" -f body="$body" > /dev/null
+        fi
