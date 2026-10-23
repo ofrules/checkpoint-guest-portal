@@ -45,22 +45,13 @@ jobs:
       # #deploys) — see checkpoint-meta's CI/CD plan doc for setup notes.
       - name: Notify Slack
         if: always()
-        uses: slackapi/slack-github-action@v4.0.0
+        uses: ./.github/actions/notify-deploy
         with:
-          method: chat.postMessage
-          token: ${{ secrets.SLACK_BOT_TOKEN }}
-          payload: |
-            "channel": "deploys",
-            "text": "checkpoint-guest-portal production deploy ${{ job.status }}",
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "${{ job.status == 'success' && ':white_check_mark:' || ':x:' }} *checkpoint-guest-portal* production deploy *${{ job.status }}*\n<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|`${{ github.sha }}`> by ${{ github.actor }}  ·  <https://ofrules-checkpoint-dashboard.firebaseapp.com/|dashboard>"
-                }
-              }
-            ]
+          app: guest-portal
+          app_emoji: hotel
+          environment: production
+          result: ${{ job.status }}
+          slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
 
   deploy_staging_persistent:
     runs-on: ubuntu-latest
