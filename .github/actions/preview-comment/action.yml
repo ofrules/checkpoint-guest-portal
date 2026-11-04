@@ -83,11 +83,13 @@ runs:
             count=$((old_count + 1)); url=$NEW_URL
             head="🔥 **${label} deployed** (deploy #${count}): ${NEW_URL}"
             details="Commit ${commit} · deployed ${now} · ${run}${trigger}"
+            details="${details}"$'\n\n'"Preview expired (after 7 days)? Open the ${run} and click **Re-run all jobs**."
             ;;
           failed)
             count=$old_count; url=$old_url
             head="❌ **${label}: deploy failed** (attempt #$((old_count + 1)))"
             details="Commit ${commit} · failed ${now} · ${run}${trigger}${previous}"
+            details="${details}"$'\n\n'"To retry, open the ${run} and click **Re-run failed jobs**."
             ;;
           *) echo "unknown state: $STATE" >&2; exit 1 ;;
         esac
