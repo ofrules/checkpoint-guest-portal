@@ -11,5 +11,14 @@ module.exports = {
   ],
   parserOptions: {
     ecmaVersion: 'latest'
-  }
+  },
+  overrides: [
+    {
+      // Service worker: importScripts and clients are worker globals, and
+      // firebase comes from the compat scripts it imports.
+      files: ['public/firebase-messaging-sw.js'],
+      env: { serviceworker: true, browser: false },
+      globals: { firebase: 'readonly' }
+    }
+  ]
 }

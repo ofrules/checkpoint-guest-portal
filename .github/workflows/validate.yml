@@ -1,0 +1,43 @@
+name: Validate
+
+# Lint on every PR. Typechecking (vue-tsc) already runs in the PR Preview
+# builds, so it isn't repeated here. Uses `lint:check`, not `lint`: `lint`
+# runs ESLint with --fix, which would hide errors in CI instead of failing.
+on:
+  pull_request:
+    # Skip runs that only change CI or docs. Keep this list the same in every
+    # Checkpoint workflow (checkpoint-meta CLAUDE.md, "CI skips unchanged
+    # code"). Lines starting with ! drop paths; later ones add a path back.
+    # A change to this workflow still runs it.
+    paths:
+      - '**'
+      - '!.github/**'
+      - '!**/*.md'
+      - '!docs/**'
+      - '!.claude/**'
+      - '!.idea/**'
+      - '!.vscode/**'
+      - '.github/workflows/validate.yml'
+
+permissions:
+  contents: read
+
+# A new push to the same PR makes the previous run's result irrelevant.
+concurrency:
+  group: validate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint:check
