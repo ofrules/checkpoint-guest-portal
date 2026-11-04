@@ -111,9 +111,14 @@ jobs:
       # A merge commit's message contains "(#123)" for both a squash merge
       # and a merge commit; a fast-forward/rebase merge won't, so this is
       # best-effort — no PR number found just means nothing to clean up.
+      # The message reaches the script through env, never inlined into it:
+      # inlined, a quote in the message broke the step and a crafted one
+      # could run commands in a job that later handles both service accounts.
       - id: pr_number
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          number=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=\(#)\d+(?=\)$)' | head -1)
+          number=$(printf '%s\n' "$COMMIT_MESSAGE" | grep -oP '(?<=\(#)\d+(?=\)$)' | head -1)
           echo "number=$number" >> "$GITHUB_OUTPUT"
 
       - if: steps.pr_number.outputs.number != ''
