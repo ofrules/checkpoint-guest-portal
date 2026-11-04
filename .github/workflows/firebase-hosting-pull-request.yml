@@ -31,6 +31,21 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
+      # A manual run (or the redeploy checkbox) only deploys previews for open
+      # PRs: a merged PR's channels were deleted on purpose.
+      - name: Refuse PRs that aren't open
+        id: open
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          state=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+          if [ "$state" != OPEN ]; then
+            echo "::error::PR #$PR is $state. Previews are only deployed for open PRs."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ inputs.pr_number }}
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr_number) || github.event.pull_request.head.sha }}
@@ -93,7 +108,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/preview-comment
-        if: failure()
+        if: failure() && steps.open.outcome != 'failure'
         continue-on-error: true
         with:
           kind: staging
@@ -108,6 +123,21 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+      # A manual run (or the redeploy checkbox) only deploys previews for open
+      # PRs: a merged PR's channels were deleted on purpose.
+      - name: Refuse PRs that aren't open
+        id: open
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          state=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+          if [ "$state" != OPEN ]; then
+            echo "::error::PR #$PR is $state. Previews are only deployed for open PRs."
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ inputs.pr_number }}
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr_number) || github.event.pull_request.head.sha }}
@@ -172,7 +202,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/preview-comment
-        if: failure()
+        if: failure() && steps.open.outcome != 'failure'
         continue-on-error: true
         with:
           kind: production

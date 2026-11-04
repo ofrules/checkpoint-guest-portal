@@ -1,0 +1,82 @@
+name: Preview redeploy
+
+# Ticking "Redeploy this preview" in a preview comment (posted by
+# .github/actions/preview-comment) redeploys that one preview through the PR
+# Preview workflow. Ticking a box in someone else's comment needs write access
+# to the repo, and the sender's access is checked again below. Comment edits
+# made here with GITHUB_TOKEN don't trigger workflows, so this can't loop.
+#
+# issue_comment workflows always run from the default branch, so changes to
+# this file only take effect after merge.
+on:
+  issue_comment:
+    types: [edited]
+
+permissions:
+  actions: write        # start the PR Preview workflow
+  pull-requests: write  # edit the preview comment
+
+jobs:
+  redeploy:
+    # Filter here, so ordinary comment edits don't start a runner: a bot
+    # preview comment whose checkbox went from unticked to ticked.
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == 'github-actions[bot]' &&
+      contains(github.event.comment.body, '<!-- preview-comment:') &&
+      contains(github.event.comment.body, '- [x] 🔄 Redeploy') &&
+      contains(github.event.changes.body.from, '- [ ] 🔄 Redeploy')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: preview-redeploy-${{ github.event.comment.id }}
+      cancel-in-progress: false
+    steps:
+      - name: Redeploy the preview
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          RAW_BODY: ${{ github.event.comment.body }}
+          SENDER: ${{ github.event.sender.login }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          # Editing in the browser can turn line endings into CRLF.
+          BODY=$(printf '%s' "$RAW_BODY" | tr -d '\r')
+
+          kind=$(printf '%s\n' "$BODY" | sed -n 's/^<!-- preview-comment:\([a-z]*\) -->$/\1/p' | head -n1)
+          case "$kind" in
+            staging|production) ;;
+            *) echo "::error::Not a preview comment (kind: '${kind}')."; exit 1 ;;
+          esac
+
+          # Replace the ticked checkbox line with $1 and save the comment.
+          set_line() {
+            new_body=$(printf '%s\n' "$BODY" | awk -v repl="$1" '/^- \[x\] 🔄 Redeploy/ { print repl; next } { print }')
+            gh api -X PATCH "repos/${REPO}/issues/comments/${COMMENT_ID}" -f body="$new_body" > /dev/null
+          }
+          # Same text as in .github/actions/preview-comment.
+          UNTICKED="- [ ] 🔄 Redeploy this preview (previews expire 7 days after a deploy)"
+
+          permission=$(gh api "repos/${REPO}/collaborators/${SENDER}/permission" --jq .permission 2>/dev/null || echo none)
+          case "$permission" in
+            admin|maintain|write) ;;
+            *)
+              set_line "$UNTICKED"
+              echo "::error::${SENDER} has '${permission}' access. Redeploying a preview needs write access."
+              exit 1
+              ;;
+          esac
+
+          state=$(gh pr view "$PR" --repo "$REPO" --json state --jq .state)
+          if [ "$state" != OPEN ]; then
+            set_line "Redeploy is disabled: this PR is $(printf '%s' "$state" | tr '[:upper:]' '[:lower:]')."
+            echo "PR #${PR} is ${state}; not redeploying." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          gh workflow run firebase-hosting-pull-request.yml --repo "$REPO" --ref "$DEFAULT_BRANCH" \
+            -f pr_number="$PR" -f target="$kind"
+          set_line "⏳ Redeploy requested by ${SENDER}. Starting…"
+          echo "Started a ${kind} preview redeploy for PR #${PR}, requested by ${SENDER}." | tee -a "$GITHUB_STEP_SUMMARY"

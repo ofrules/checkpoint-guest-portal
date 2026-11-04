@@ -105,6 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -138,6 +139,26 @@ jobs:
           rm -f /tmp/prod-sa.json
         env:
           PROD_CREDS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CHECKPOINT_A9 }}
+
+      # Replace both preview comments with "preview removed", which also drops
+      # their redeploy checkbox.
+      - if: steps.pr_number.outputs.number != ''
+        uses: ./.github/actions/preview-comment
+        continue-on-error: true
+        with:
+          kind: staging
+          state: removed
+          pr_number: ${{ steps.pr_number.outputs.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - if: steps.pr_number.outputs.number != ''
+        uses: ./.github/actions/preview-comment
+        continue-on-error: true
+        with:
+          kind: production
+          state: removed
+          pr_number: ${{ steps.pr_number.outputs.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   notify_dashboard:
     needs: [build_and_deploy, deploy_staging_persistent, cleanup_pr_preview_channels]

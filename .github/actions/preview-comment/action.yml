@@ -5,13 +5,16 @@ description: >-
   state of the latest deploy (in progress / deployed / failed), the commit and
   time, a running deploy counter, and keeps the previous preview URL visible
   while a new one is deploying. Run it from a checkout of the PR head.
+  Deployed and failed comments end with a "Redeploy this preview" checkbox;
+  ticking it starts .github/workflows/preview-redeploy.yml. The `removed`
+  state (used after merge) drops the checkbox.
 
 inputs:
   kind:
     description: staging or production
     required: true
   state:
-    description: deploying, deployed or failed
+    description: deploying, deployed, failed or removed
     required: true
   pr_number:
     description: Pull request number
@@ -47,7 +50,7 @@ runs:
         esac
         marker="<!-- preview-comment:${KIND} -->"
 
-        sha=$(git rev-parse HEAD)
+        sha=$(git rev-parse HEAD 2>/dev/null || echo unknown)
         commit="[\`${sha:0:7}\`](https://github.com/${REPO}/commit/${sha})"
         run="[run](https://github.com/${REPO}/actions/runs/${RUN_ID})"
         now=$(date -u '+%Y-%m-%d %H:%M UTC')
@@ -68,6 +71,14 @@ runs:
           old_count=${old_count:-0}
         fi
 
+        # Nothing to mark as removed on a PR that never got a preview comment.
+        if [ "$STATE" = removed ] && [ -z "$comment_id" ]; then
+          exit 0
+        fi
+
+        # Keep this text in sync with .github/workflows/preview-redeploy.yml.
+        redeploy=$'\n\n'"- [ ] 🔄 Redeploy this preview (previews expire 7 days after a deploy)"
+
         previous=""
         if [ -n "$old_url" ]; then
           previous=$'\n'"Previous preview (deploy #${old_count}) is still available: ${old_url}"
@@ -75,7 +86,7 @@ runs:
 
         case "$STATE" in
           deploying)
-            count=$old_count; url=$old_url
+            count=$old_count; url=$old_url; redeploy=""
             head="⏳ **${label}: deploying** (deploy #$((old_count + 1)))"
             details="Commit ${commit} · started ${now} · ${run}${trigger}${previous}"
             ;;
@@ -89,6 +100,11 @@ runs:
             head="❌ **${label}: deploy failed** (attempt #$((old_count + 1)))"
             details="Commit ${commit} · failed ${now} · ${run}${trigger}${previous}"
             ;;
+          removed)
+            count=$old_count; url=$old_url; redeploy=""
+            head="🧹 **${label} removed**: the PR was merged and its preview channel was deleted."
+            details="Last preview: deploy #${old_count} · removed ${now} · ${run}"
+            ;;
           *) echo "unknown state: $STATE" >&2; exit 1 ;;
         esac
 
@@ -96,7 +112,7 @@ runs:
         <!-- preview-data count=${count} url=${url} -->
         ${head}
 
-        ${details}
+        ${details}${redeploy}
 
         ${dashboard}"
 
