@@ -180,18 +180,3 @@ jobs:
           pr_number: ${{ github.event.pull_request.number || inputs.pr_number }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  notify_dashboard:
-    needs: [build_and_preview_staging, build_and_preview_production]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      # Fire-and-forget: the deploy-status dashboard (ofrules/checkpoint-meta)
-      # polls Firebase Hosting + GitHub itself on refresh, so this just makes
-      # that refresh happen automatically instead of only on manual dispatch.
-      # Requires a CHECKPOINT_META_DISPATCH_TOKEN secret (PAT with `workflow`
-      # scope on ofrules/checkpoint-meta) — the default GITHUB_TOKEN can't
-      # trigger workflows in a different repo.
-      - name: Trigger deploy-status dashboard refresh
-        run: gh workflow run refresh-deploy-status.yml --repo ofrules/checkpoint-meta
-        env:
-          GH_TOKEN: ${{ secrets.CHECKPOINT_META_DISPATCH_TOKEN }}
