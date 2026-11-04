@@ -2,6 +2,20 @@ name: PR Preview
 
 on:
   pull_request:
+    # Skip runs that only change CI or docs. Keep this list the same in every
+    # Checkpoint workflow (checkpoint-meta CLAUDE.md, "CI skips unchanged
+    # code"). Lines starting with ! drop paths; later ones add a path back.
+    # A change to this workflow or a shared action still deploys previews.
+    paths:
+      - '**'
+      - '!.github/**'
+      - '!**/*.md'
+      - '!docs/**'
+      - '!.claude/**'
+      - '!.idea/**'
+      - '!.vscode/**'
+      - '.github/workflows/firebase-hosting-pull-request.yml'
+      - '.github/actions/**'
   workflow_dispatch:
     inputs:
       pr_number:

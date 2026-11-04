@@ -4,9 +4,86 @@ on:
   push:
     branches:
       - main
+    # Skip runs that only change CI or docs. Keep this list the same in every
+    # Checkpoint workflow (checkpoint-meta CLAUDE.md, "CI skips unchanged
+    # code"). Lines starting with ! drop paths; later ones add a path back.
+    # A change to this workflow or a shared action still starts it, but the
+    # `changes` job below then deploys staging only.
+    paths:
+      - '**'
+      - '!.github/**'
+      - '!**/*.md'
+      - '!docs/**'
+      - '!.claude/**'
+      - '!.idea/**'
+      - '!.vscode/**'
+      - '.github/workflows/firebase-hosting-merge.yml'
+      - '.github/actions/**'
+  # Manual deploy, for CI-only changes the push filter skipped. Production
+  # can only be deployed from main; staging from any branch.
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Where to deploy
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+          - both
 
 jobs:
+  # Decides which deploys run. On a push the workflow only starts when the app
+  # or this deploy's CI files changed (see `paths` above); production runs
+  # only if the app itself changed. Anything unexpected (unknown `before`,
+  # failed fetch) deploys both, as before this job existed.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      production: ${{ steps.decide.outputs.production }}
+      staging: ${{ steps.decide.outputs.staging }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          TARGET: ${{ inputs.target }}
+          BEFORE: ${{ github.event.before }}
+          # Same paths the `paths` filter drops, as a regex.
+          NOT_APP: '^\.github/|\.md$|^docs/|^\.claude/|^\.idea/|^\.vscode/'
+        run: |
+          production=true
+          staging=true
+          if [ "$EVENT" = workflow_dispatch ]; then
+            case "$TARGET" in
+              staging)    production=false ;;
+              production) staging=false ;;
+            esac
+            if [ "$production" = true ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "::error::Production can only be deployed from main, but this run is on $GITHUB_REF. Pick main under \"Use workflow from\", or deploy staging only."
+              exit 1
+            fi
+            reason="manual run: $TARGET"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ] \
+              && git fetch -q --depth=1 origin "$BEFORE"; then
+            if git diff --name-only "$BEFORE" HEAD | grep -vE "$NOT_APP" | grep -q .; then
+              reason="app files changed"
+            else
+              production=false
+              reason="only CI files changed: staging deploys, production is skipped"
+            fi
+          else
+            reason="could not diff against the previous commit, deploying both"
+          fi
+          echo "production=$production" >> "$GITHUB_OUTPUT"
+          echo "staging=$staging" >> "$GITHUB_OUTPUT"
+          echo "Deploy production: $production, staging: $staging ($reason)" | tee -a "$GITHUB_STEP_SUMMARY"
+
   build_and_deploy:
+    needs: changes
+    if: needs.changes.outputs.production == 'true'
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -54,6 +131,8 @@ jobs:
           slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
 
   deploy_staging_persistent:
+    needs: changes
+    if: needs.changes.outputs.staging == 'true'
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -102,6 +181,9 @@ jobs:
 
   cleanup_pr_preview_channels:
     needs: [build_and_deploy, deploy_staging_persistent]
+    # Runs when neither deploy failed, including when production was skipped.
+    # Only on a merge: a manual run has no merged PR to clean up after.
+    if: ${{ github.event_name == 'push' && !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
