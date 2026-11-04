@@ -89,6 +89,17 @@ jobs:
           projectId: ofrules-checkpoint-staging
           target: staging
 
+      # Same #deploys message as the production job, labelled STAGING.
+      - name: Notify Slack
+        if: always()
+        uses: ./.github/actions/notify-deploy
+        with:
+          app: guest-portal
+          app_emoji: hotel
+          environment: staging
+          result: ${{ job.status }}
+          slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+
   cleanup_pr_preview_channels:
     needs: [build_and_deploy, deploy_staging_persistent]
     runs-on: ubuntu-latest
