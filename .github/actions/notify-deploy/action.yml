@@ -24,6 +24,17 @@ inputs:
   channel:
     description: Slack channel
     default: deploys
+  ref:
+    description: >-
+      Ref that was deployed, when it is not the ref the workflow ran from (a
+      manual run that takes a ref input). Shown on manually run deploys.
+      Defaults to github.ref_name.
+    default: ""
+  sha:
+    description: >-
+      Commit that was deployed, when it is not github.sha. Used for the commit
+      link. Defaults to github.sha.
+    default: ""
 
 runs:
   using: composite
@@ -41,8 +52,8 @@ runs:
         CHANNEL: ${{ inputs.channel }}
         EVENT: ${{ github.event_name }}
         ACTOR: ${{ github.actor }}
-        REF_NAME: ${{ github.ref_name }}
-        SHA: ${{ github.sha }}
+        REF_NAME: ${{ inputs.ref || github.ref_name }}
+        SHA: ${{ inputs.sha || github.sha }}
         REPO: ${{ github.repository }}
         RUN_ID: ${{ github.run_id }}
         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
