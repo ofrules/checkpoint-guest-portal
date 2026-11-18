@@ -1,0 +1,26 @@
+name: Lint workflows
+
+# actionlint on every PR that changes CI. GitHub rejects a broken workflow
+# file without starting a run or notifying anyone: deploy-staging.yml in
+# cloud functions was rejected for two weeks (Nov 2026) over a duplicated
+# step id. The other checks skip CI-only PRs, so this is often their only check.
+on:
+  pull_request:
+    paths:
+      - '.github/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-workflows-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # shortcut: shellcheck of run: scripts is off (-shellcheck=); turn it on once they are clean.
+      - run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.7 -color -shellcheck=
