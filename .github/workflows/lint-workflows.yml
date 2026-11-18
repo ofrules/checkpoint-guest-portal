@@ -23,4 +23,4 @@ jobs:
       - uses: actions/checkout@v4
 
       # shortcut: shellcheck of run: scripts is off (-shellcheck=); turn it on once they are clean.
-      - run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.7 -color -shellcheck=
+      - run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12 -color -shellcheck=
