@@ -1,0 +1,38 @@
+name: Deploy expected
+
+# Announces the deploy this merge triggers (firebase-hosting-merge.yml) to the monitoring
+# provider, so a deploy that never finishes raises an alert. `paths` must stay
+# identical to firebase-hosting-merge.yml's, or a merge that deploys nothing would raise a false
+# alarm (or one that deploys would go unwatched). The deploy confirms with
+# monitor-signal ok/fail for the same commit. See checkpoint-meta CLAUDE.md
+# "Monitoring".
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**'
+      - '!.github/**'
+      - '!**/*.md'
+      - '!docs/**'
+      - '!.claude/**'
+      - '!.idea/**'
+      - '!.vscode/**'
+      - '.github/workflows/firebase-hosting-merge.yml'
+      - '.github/actions/**'
+
+permissions:
+  contents: read
+
+jobs:
+  expect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ofrules/checkpoint-meta/.github/actions/deploy-expected@master
+        with:
+          name: deploy-guest-portal
+          provider: ${{ vars.MONITOR_PROVIDER || 'sentry' }}
+          key: ${{ secrets.MONITOR_KEY }}
