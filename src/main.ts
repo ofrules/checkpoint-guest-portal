@@ -29,7 +29,9 @@ Sentry.init({
   app,
   dsn: import.meta.env.VITE_SENTRY_DSN,
   enableLogs: true,
-  environment: import.meta.env.MODE
+  environment: import.meta.env.MODE,
+  // The deployed commit (set by CI), so issues and deploy markers line up.
+  release: import.meta.env.VITE_SENTRY_RELEASE
 })
 
 app.mount('#app')
