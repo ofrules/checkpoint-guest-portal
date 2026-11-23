@@ -178,7 +178,7 @@ jobs:
           environment: production
           signal: ${{ job.status == 'success' && 'ok' || 'fail' }}
           provider: ${{ vars.MONITOR_PROVIDER || 'sentry' }}
-          key: ${{ secrets.MONITOR_KEY }}
+          key: ${{ secrets.MONITOR_KEY || vars.VITE_SENTRY_DSN }}
           run_id: ${{ github.sha }}
 
   deploy_staging_persistent:
@@ -278,7 +278,7 @@ jobs:
           environment: staging
           signal: ${{ job.status == 'success' && 'ok' || 'fail' }}
           provider: ${{ vars.MONITOR_PROVIDER || 'sentry' }}
-          key: ${{ secrets.MONITOR_KEY }}
+          key: ${{ secrets.MONITOR_KEY || vars.VITE_SENTRY_DSN }}
           run_id: ${{ github.sha }}
 
   cleanup_pr_preview_channels:

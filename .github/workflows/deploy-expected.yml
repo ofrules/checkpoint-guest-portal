@@ -35,4 +35,4 @@ jobs:
         with:
           name: deploy-guest-portal
           provider: ${{ vars.MONITOR_PROVIDER || 'sentry' }}
-          key: ${{ secrets.MONITOR_KEY }}
+          key: ${{ secrets.MONITOR_KEY || vars.VITE_SENTRY_DSN }}
