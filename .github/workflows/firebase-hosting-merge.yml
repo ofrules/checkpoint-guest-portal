@@ -88,6 +88,9 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the Sentry release can find its commit range.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -108,6 +111,12 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
           VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+
+      # Served as a static file (before any rewrite), so the step after the
+      # deploy can read back which commit is live.
+      - name: Write version.json
+        run: echo "{\"sha\":\"${GITHUB_SHA}\"}" > dist/version.json
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -116,6 +125,35 @@ jobs:
           channelId: live
           projectId: checkpoint-a9
           target: production
+
+      # Reads version.json back from the live site until it shows this
+      # commit: proof the deploy is actually being served, not just uploaded.
+      - name: Verify live version
+        env:
+          URL: https://guest.ofrules.com
+        run: |
+          for i in $(seq 1 12); do
+            live=$(curl -fsS --max-time 10 "$URL/version.json?ts=$(date +%s)" | jq -r '.sha // empty' || true)
+            if [ "$live" = "$GITHUB_SHA" ]; then echo "Live on $URL: $live"; exit 0; fi
+            echo "Attempt $i: live is '${live:-unknown}', want $GITHUB_SHA"; sleep 10
+          done
+          echo "::error::$URL still doesn't serve $GITHUB_SHA after 2 minutes"
+          exit 1
+
+      # Release with commits + a deploy marker in Sentry (same as cloud
+      # functions). The site is already live; a Sentry outage mustn't fail it.
+      - name: Record Sentry release and deploy
+        uses: getsentry/action-release@v3
+        continue-on-error: true
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ofrules
+          SENTRY_PROJECT: guest-portal
+        with:
+          release: ${{ github.sha }}
+          environment: production
+          set_commits: auto
+          ignore_missing: true
 
       # if: always() so a failed deploy notifies too, not just successes.
       # Requires a SLACK_BOT_TOKEN secret (chat:write scope, bot invited to
@@ -130,6 +168,19 @@ jobs:
           result: ${{ job.status }}
           slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
 
+      # Confirms the deploy that deploy-expected.yml announced on merge. Last,
+      # and on failure too, so a broken deploy alerts at once. Never fails.
+      - name: Confirm deploy to the heartbeat monitor
+        if: always()
+        uses: ofrules/checkpoint-meta/.github/actions/monitor-signal@master
+        with:
+          name: deploy-guest-portal
+          environment: production
+          signal: ${{ job.status == 'success' && 'ok' || 'fail' }}
+          provider: ${{ vars.MONITOR_PROVIDER || 'sentry' }}
+          key: ${{ secrets.MONITOR_KEY || vars.VITE_SENTRY_DSN }}
+          run_id: ${{ github.sha }}
+
   deploy_staging_persistent:
     needs: changes
     if: needs.changes.outputs.staging == 'true'
@@ -137,6 +188,9 @@ jobs:
     environment: staging
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so the Sentry release can find its commit range.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -157,6 +211,12 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
           VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+
+      # Served as a static file (before any rewrite), so the step after the
+      # deploy can read back which commit is live.
+      - name: Write version.json
+        run: echo "{\"sha\":\"${GITHUB_SHA}\"}" > dist/version.json
 
       # Persistent (channelId: live), not an ephemeral preview channel —
       # main always reflects the latest merged staging build.
@@ -168,6 +228,35 @@ jobs:
           projectId: ofrules-checkpoint-staging
           target: staging
 
+      # Reads version.json back from the live site until it shows this
+      # commit: proof the deploy is actually being served, not just uploaded.
+      - name: Verify live version
+        env:
+          URL: https://checkpoint-guest-portal-staging.web.app
+        run: |
+          for i in $(seq 1 12); do
+            live=$(curl -fsS --max-time 10 "$URL/version.json?ts=$(date +%s)" | jq -r '.sha // empty' || true)
+            if [ "$live" = "$GITHUB_SHA" ]; then echo "Live on $URL: $live"; exit 0; fi
+            echo "Attempt $i: live is '${live:-unknown}', want $GITHUB_SHA"; sleep 10
+          done
+          echo "::error::$URL still doesn't serve $GITHUB_SHA after 2 minutes"
+          exit 1
+
+      # Release with commits + a deploy marker in Sentry (same as cloud
+      # functions). The site is already live; a Sentry outage mustn't fail it.
+      - name: Record Sentry release and deploy
+        uses: getsentry/action-release@v3
+        continue-on-error: true
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ofrules
+          SENTRY_PROJECT: guest-portal
+        with:
+          release: ${{ github.sha }}
+          environment: staging
+          set_commits: auto
+          ignore_missing: true
+
       # Same #deploys message as the production job, labelled STAGING.
       - name: Notify Slack
         if: always()
@@ -178,6 +267,19 @@ jobs:
           environment: staging
           result: ${{ job.status }}
           slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      # Confirms the deploy that deploy-expected.yml announced on merge. Last,
+      # and on failure too, so a broken deploy alerts at once. Never fails.
+      - name: Confirm deploy to the heartbeat monitor
+        if: always()
+        uses: ofrules/checkpoint-meta/.github/actions/monitor-signal@master
+        with:
+          name: deploy-guest-portal
+          environment: staging
+          signal: ${{ job.status == 'success' && 'ok' || 'fail' }}
+          provider: ${{ vars.MONITOR_PROVIDER || 'sentry' }}
+          key: ${{ secrets.MONITOR_KEY || vars.VITE_SENTRY_DSN }}
+          run_id: ${{ github.sha }}
 
   cleanup_pr_preview_channels:
     needs: [build_and_deploy, deploy_staging_persistent]
